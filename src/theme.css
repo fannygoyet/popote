@@ -1,0 +1,445 @@
+/* Popote — design system pastel & doux (inspiré des maquettes : lilas, pêche,
+   menthe, jaune beurre, coins très arrondis, ombres molles "clay"). */
+
+:root {
+  --lilas: #b8a4e8;
+  --lilas-clair: #e7ddfb;
+  --lilas-fond: #f6f1fb;
+  --peche: #ffc9b3;
+  --peche-clair: #ffe5db;
+  --menthe: #b9e6d3;
+  --menthe-clair: #ddf3ea;
+  --beurre: #ffe0a3;
+  --beurre-clair: #fff2d6;
+  --rose: #ffc2d6;
+  --rose-clair: #ffe2ec;
+  --bleu: #b9d4f3;
+  --bleu-clair: #e1eefb;
+
+  --texte: #4a4458;
+  --texte-doux: #8a8499;
+  --blanc: #ffffff;
+  --carte: #ffffff;
+
+  --ombre: 0 10px 30px rgba(120, 100, 170, 0.14);
+  --ombre-douce: 0 4px 14px rgba(120, 100, 170, 0.1);
+  --ombre-clay: 0 8px 0 rgba(120, 100, 170, 0.1);
+
+  --r-s: 14px;
+  --r-m: 22px;
+  --r-l: 30px;
+  --r-xl: 38px;
+
+  --pad: 18px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, 'SF Pro Rounded', 'Nunito', BlinkMacSystemFont, 'Segoe UI', system-ui,
+    sans-serif;
+  color: var(--texte);
+  background: var(--lilas-fond);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: 16px; /* évite le zoom iOS */
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* --- Layout appli (mobile-first, centré sur grand écran) ------------------ */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.ecran {
+  flex: 1;
+  padding: 16px 16px calc(96px + var(--safe-b));
+  animation: monte 0.3s ease;
+}
+
+@keyframes monte {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 14px;
+}
+.entete h1 {
+  font-size: 26px;
+}
+.sous-titre {
+  color: var(--texte-doux);
+  font-size: 14px;
+  margin: 2px 0 0;
+}
+
+/* --- Cartes --------------------------------------------------------------- */
+.carte {
+  background: var(--carte);
+  border-radius: var(--r-l);
+  padding: var(--pad);
+  box-shadow: var(--ombre-douce);
+}
+
+.carte-pleine {
+  border-radius: var(--r-l);
+  padding: 20px;
+  box-shadow: var(--ombre);
+}
+
+/* --- Boutons -------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-weight: 800;
+  font-size: 16px;
+  background: var(--lilas);
+  color: white;
+  box-shadow: var(--ombre-douce);
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn.bloc {
+  width: 100%;
+}
+.btn.fantome {
+  background: var(--lilas-clair);
+  color: var(--lilas);
+}
+.btn.clair {
+  background: white;
+  color: var(--texte);
+}
+.btn.petit {
+  padding: 9px 16px;
+  font-size: 14px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* --- Pastilles / chips ---------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--lilas-fond);
+  color: var(--texte);
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid transparent;
+  transition: all 0.12s ease;
+}
+.chip.actif {
+  background: var(--lilas);
+  color: white;
+}
+.chip.aime.actif {
+  background: var(--menthe);
+  color: #2c6b53;
+}
+.chip.moyen.actif {
+  background: var(--beurre);
+  color: #8a6a17;
+}
+.chip.pasaime.actif {
+  background: var(--rose);
+  color: #a33a63;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--lilas-fond);
+  color: var(--texte-doux);
+}
+
+/* --- Grilles ------------------------------------------------------------- */
+.grille-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ligne {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.espace {
+  justify-content: space-between;
+}
+
+/* --- Stat ---------------------------------------------------------------- */
+.stat {
+  border-radius: var(--r-m);
+  padding: 16px;
+  color: var(--texte);
+}
+.stat .num {
+  font-size: 28px;
+  font-weight: 900;
+  margin-top: 6px;
+}
+.stat .lbl {
+  font-size: 13px;
+  color: var(--texte-doux);
+  font-weight: 700;
+}
+
+/* --- Navigation basse ---------------------------------------------------- */
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 8px calc(10px + var(--safe-b));
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(120, 100, 170, 0.08);
+  border-radius: var(--r-l) var(--r-l) 0 0;
+  z-index: 20;
+}
+.nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--texte-doux);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 16px;
+  transition: all 0.15s ease;
+}
+.nav a .ic {
+  font-size: 22px;
+}
+.nav a.actif {
+  color: var(--lilas);
+  background: var(--lilas-clair);
+}
+
+/* --- Mascotte (bulle de dialogue) ---------------------------------------- */
+.mascotte {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mascotte .face {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  background: radial-gradient(circle at 35% 30%, var(--beurre-clair), var(--beurre));
+  box-shadow: var(--ombre-douce);
+  flex-shrink: 0;
+  animation: flotte 3s ease-in-out infinite;
+}
+@keyframes flotte {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+.bulle {
+  background: white;
+  border-radius: var(--r-m);
+  padding: 12px 16px;
+  box-shadow: var(--ombre-douce);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* --- Champs -------------------------------------------------------------- */
+.champ {
+  width: 100%;
+  background: white;
+  border: 2px solid var(--lilas-clair);
+  border-radius: var(--r-m);
+  padding: 14px 16px;
+  outline: none;
+  transition: border 0.15s ease;
+}
+.champ:focus {
+  border-color: var(--lilas);
+}
+.label {
+  font-weight: 800;
+  font-size: 14px;
+  margin: 0 0 6px 4px;
+  display: block;
+}
+
+/* --- Slider équilibre ---------------------------------------------------- */
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--lilas);
+  height: 30px;
+}
+
+/* --- Divers -------------------------------------------------------------- */
+.rond {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--lilas-clair);
+  color: var(--lilas);
+  font-size: 22px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.vide {
+  text-align: center;
+  color: var(--texte-doux);
+  padding: 40px 20px;
+}
+.vide .gros {
+  font-size: 52px;
+  margin-bottom: 10px;
+}
+.barre {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--lilas-clair);
+  overflow: hidden;
+}
+.barre > span {
+  display: block;
+  height: 100%;
+  background: var(--lilas);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.pousser {
+  margin-left: auto;
+}
+.compteur {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--lilas-fond);
+  border-radius: 999px;
+  padding: 4px;
+}
+.compteur button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: white;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--lilas);
+  box-shadow: var(--ombre-douce);
+  display: grid;
+  place-items: center;
+}
+.compteur .v {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.scanner-zone {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+.scanner-zone video {
+  flex: 1;
+  width: 100%;
+  object-fit: cover;
+}
+.scanner-cible {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  height: 160px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+}
