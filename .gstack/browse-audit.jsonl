@@ -72,3 +72,11 @@
 {"ts":"2026-06-02T19:29:05.579Z","cmd":"screenshot","args":"/tmp/popote-sync-err.png","origin":"http://localhost:5173/#/sync","durationMs":92,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:29:30.639Z","cmd":"screenshot","args":"/tmp/popote-sync-err2.png","origin":"http://localhost:5173/#/sync","durationMs":77,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:29:30.763Z","cmd":"js","args":"[...document.querySelectorAll('.carte,.tag,p')].map(e=>e.textContent).filter(t=>/chec|rror|Erreur|fetch|network/i.test(t)).slice(0,3)","origin":"http://localhost:5173/#/sync","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:38:44.557Z","cmd":"js","args":"location.href='http://localhost:5173/'","origin":"http://localhost:5173/#/sync","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:38:46.697Z","cmd":"js","args":"document.querySelector('#root').innerText.length","origin":"http://localhost:5173/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:38:46.820Z","cmd":"goto","args":"http://localhost:5173/#/sync","origin":"http://localhost:5173/#/sync","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:38:47.947Z","cmd":"js","args":"document.querySelector('input[placeholder^=\"popote-\"]')?.value","origin":"http://localhost:5173/#/sync","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:38:48.067Z","cmd":"console","args":"","origin":"http://localhost:5173/#/sync","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:39:25.253Z","cmd":"js","args":"localStorage.getItem('popote.sync')","origin":"http://localhost:5173/#/sync","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:39:25.376Z","cmd":"js","args":"localStorage.getItem('popote.ts')","origin":"http://localhost:5173/#/sync","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:39:31.507Z","cmd":"console","args":"","origin":"http://localhost:5173/#/sync","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}

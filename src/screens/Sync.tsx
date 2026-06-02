@@ -13,6 +13,13 @@ alter table popote_sync enable row level security;
 create policy "popote" on popote_sync
   for all using (true) with check (true);`
 
+// code de synchro long et aléatoire (difficile à deviner) — meilleur qu'un mot choisi
+function genererCode(): string {
+  const a = new Uint8Array(12)
+  crypto.getRandomValues(a)
+  return 'popote-' + Array.from(a, (b) => b.toString(36)).join('').slice(0, 16)
+}
+
 function etatLabel(etat: string) {
   switch (etat) {
     case 'off':
@@ -36,7 +43,7 @@ export function Sync() {
 
   const [url, setUrl] = useState(conf?.url ?? '')
   const [key, setKey] = useState(conf?.key ?? '')
-  const [code, setCode] = useState(conf?.code ?? '')
+  const [code, setCode] = useState(() => conf?.code ?? genererCode())
   const [aide, setAide] = useState(false)
   const [enCours, setEnCours] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -158,8 +165,14 @@ export function Sync() {
               <input className="champ" placeholder="eyJhbGci…" value={key} onChange={(e) => setKey(e.target.value)} />
             </div>
             <div>
-              <span className="label">Code de synchro (inventé, secret, identique sur tes appareils)</span>
-              <input className="champ" placeholder="ex. popote-maison-2026" value={code} onChange={(e) => setCode(e.target.value)} />
+              <span className="label">Code de synchro (secret, identique sur tes 2 appareils)</span>
+              <input className="champ" placeholder="popote-xxxxxxxx" value={code} onChange={(e) => setCode(e.target.value)} />
+              <button className="btn fantome petit" style={{ marginTop: 8 }} onClick={() => setCode(genererCode())}>
+                🎲 Générer un code sûr
+              </button>
+              <p className="sous-titre" style={{ margin: '6px 0 0' }}>
+                Un code long et aléatoire est plus sûr. Note-le pour le saisir à l'identique sur l'autre appareil.
+              </p>
             </div>
             <button className="btn bloc" disabled={!url.trim() || !key.trim() || !code.trim() || enCours} onClick={activer}>
               {enCours ? 'Connexion…' : 'Activer la sync'}

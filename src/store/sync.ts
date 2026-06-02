@@ -36,7 +36,11 @@ async function getClient(c: SyncConfig) {
   const cle = c.url + '|' + c.key
   if (client && clientCle === cle) return client
   const { createClient } = await import('@supabase/supabase-js')
-  client = createClient(c.url, c.key, { auth: { persistSession: false } })
+  // on n'utilise pas l'auth Supabase : on la coupe pour éviter tout appel réseau
+  // en arrière-plan (rafraîchissement de token, etc.)
+  client = createClient(c.url, c.key, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
   clientCle = cle
   return client
 }

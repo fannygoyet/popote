@@ -122,7 +122,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // --- Synchronisation ---
   const syncRef = useRef<SyncConfig | null>(getSyncConfig())
-  const tsRef = useRef<number>(Number(localStorage.getItem(TS_KEY)) || Date.now())
+  // 0 tant qu'aucune modif locale réelle n'a eu lieu : ainsi un appareil "vierge"
+  // n'écrase jamais des données distantes plus anciennes (anti perte de données).
+  const tsRef = useRef<number>(Number(localStorage.getItem(TS_KEY)) || 0)
   const dataRef = useRef<AppData>(data)
   const applyingRemote = useRef(false)
   const premierRendu = useRef(true)
@@ -215,11 +217,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     setSyncConfig(c)
     syncRef.current = c
-    // pousse l'état courant immédiatement, puis l'effet de pull prendra le relais
+    // On RÉCUPÈRE d'abord : si des données existent déjà dans le cloud (ex. 2e
+    // appareil), on les adopte au lieu de les écraser. On ne pousse que si le
+    // cloud est vide ou plus ancien.
     try {
-      tsRef.current = Date.now()
-      localStorage.setItem(TS_KEY, String(tsRef.current))
-      await push(c, dataRef.current, tsRef.current)
+      const r = await pull(c)
+      if (r && r.ts > tsRef.current) {
+        applyingRemote.current = true
+        tsRef.current = r.ts
+        localStorage.setItem(TS_KEY, String(r.ts))
+        setData({ ...dataInitiale(), ...r.data, version: VERSION })
+      } else {
+        if (tsRef.current === 0) {
+          tsRef.current = Date.now()
+          localStorage.setItem(TS_KEY, String(tsRef.current))
+        }
+        await push(c, dataRef.current, tsRef.current)
+      }
       setSync({ etat: 'ok', derniere: Date.now() })
     } catch (e: any) {
       setSync({ etat: 'err', derniere: null, message: e?.message })
