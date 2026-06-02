@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type {
   AppData,
   AvisRecette,
@@ -14,6 +14,10 @@ import type {
 } from './types'
 import { PRODUITS_SEED, RECETTES_SEED } from './seed'
 import { aujourdhui } from './util'
+import { getSyncConfig, setSyncConfig, pull, push, ping, type SyncConfig } from './sync'
+
+export type EtatSync = 'off' | 'idle' | 'sync' | 'ok' | 'err'
+const TS_KEY = 'popote.ts'
 
 const KEY = 'popote.data.v1'
 const VERSION = 1
@@ -104,6 +108,11 @@ interface Ctx {
   loggerLibre: (e: { libelle: string; kcal: number; personneId: string; moment?: Moment; date?: string }) => void
   supprimerRepas: (id: string) => void
   kcalDuJour: (personneId: string, date?: string) => number
+  // synchronisation iPhone↔iPad
+  sync: { etat: EtatSync; derniere: number | null; message?: string }
+  configurerSync: (c: SyncConfig) => Promise<{ ok: boolean; message: string }>
+  desactiverSync: () => void
+  synchroniserMaintenant: () => Promise<void>
 }
 
 const StoreContext = createContext<Ctx | null>(null)
@@ -111,9 +120,138 @@ const StoreContext = createContext<Ctx | null>(null)
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(charger)
 
+  // --- Synchronisation ---
+  const syncRef = useRef<SyncConfig | null>(getSyncConfig())
+  const tsRef = useRef<number>(Number(localStorage.getItem(TS_KEY)) || Date.now())
+  const dataRef = useRef<AppData>(data)
+  const applyingRemote = useRef(false)
+  const premierRendu = useRef(true)
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [sync, setSync] = useState<{ etat: EtatSync; derniere: number | null; message?: string }>({
+    etat: getSyncConfig() ? 'idle' : 'off',
+    derniere: null,
+  })
+
+  dataRef.current = data
+
+  function planifierPush() {
+    const c = syncRef.current
+    if (!c) return
+    if (pushTimer.current) clearTimeout(pushTimer.current)
+    pushTimer.current = setTimeout(async () => {
+      try {
+        setSync((s) => ({ ...s, etat: 'sync' }))
+        await push(c, dataRef.current, tsRef.current)
+        setSync({ etat: 'ok', derniere: Date.now() })
+      } catch (e: any) {
+        setSync({ etat: 'err', derniere: null, message: e?.message })
+      }
+    }, 1500)
+  }
+
+  // Persistance locale + déclenchement du push sur modif réelle
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(data))
+    if (premierRendu.current) {
+      premierRendu.current = false
+      return
+    }
+    if (applyingRemote.current) {
+      applyingRemote.current = false
+      return
+    }
+    tsRef.current = Date.now()
+    localStorage.setItem(TS_KEY, String(tsRef.current))
+    planifierPush()
   }, [data])
+
+  // Récupération distante : au montage, au retour sur l'app, et toutes les 30 s
+  useEffect(() => {
+    const c = syncRef.current
+    if (!c) return
+    let vivant = true
+    const tirer = async () => {
+      try {
+        setSync((s) => ({ ...s, etat: 'sync' }))
+        const r = await pull(c)
+        if (!vivant) return
+        if (r && r.ts > tsRef.current) {
+          // le distant est plus récent -> on adopte
+          applyingRemote.current = true
+          tsRef.current = r.ts
+          localStorage.setItem(TS_KEY, String(r.ts))
+          setData({ ...dataInitiale(), ...r.data, version: VERSION })
+          setSync({ etat: 'ok', derniere: Date.now() })
+        } else if (!r || r.ts < tsRef.current) {
+          // rien en face, ou on est plus récent -> on pousse
+          await push(c, dataRef.current, tsRef.current)
+          setSync({ etat: 'ok', derniere: Date.now() })
+        } else {
+          setSync({ etat: 'ok', derniere: Date.now() })
+        }
+      } catch (e: any) {
+        if (vivant) setSync({ etat: 'err', derniere: null, message: e?.message })
+      }
+    }
+    tirer()
+    const onVis = () => {
+      if (!document.hidden) tirer()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    const iv = setInterval(tirer, 30000)
+    return () => {
+      vivant = false
+      document.removeEventListener('visibilitychange', onVis)
+      clearInterval(iv)
+    }
+    // re-souscrit quand la config change (etat off->idle/inverse)
+  }, [sync.etat === 'off'])
+
+  const configurerSync: Ctx['configurerSync'] = async (c) => {
+    const test = await ping(c)
+    if (!test.ok) {
+      setSync({ etat: 'err', derniere: null, message: test.message })
+      return test
+    }
+    setSyncConfig(c)
+    syncRef.current = c
+    // pousse l'état courant immédiatement, puis l'effet de pull prendra le relais
+    try {
+      tsRef.current = Date.now()
+      localStorage.setItem(TS_KEY, String(tsRef.current))
+      await push(c, dataRef.current, tsRef.current)
+      setSync({ etat: 'ok', derniere: Date.now() })
+    } catch (e: any) {
+      setSync({ etat: 'err', derniere: null, message: e?.message })
+    }
+    return { ok: true, message: test.message }
+  }
+
+  const desactiverSync: Ctx['desactiverSync'] = () => {
+    setSyncConfig(null)
+    syncRef.current = null
+    setSync({ etat: 'off', derniere: null })
+  }
+
+  const synchroniserMaintenant: Ctx['synchroniserMaintenant'] = async () => {
+    const c = syncRef.current
+    if (!c) return
+    try {
+      setSync((s) => ({ ...s, etat: 'sync' }))
+      const r = await pull(c)
+      if (r && r.ts > tsRef.current) {
+        applyingRemote.current = true
+        tsRef.current = r.ts
+        localStorage.setItem(TS_KEY, String(r.ts))
+        setData({ ...dataInitiale(), ...r.data, version: VERSION })
+      } else {
+        await push(c, dataRef.current, tsRef.current)
+      }
+      setSync({ etat: 'ok', derniere: Date.now() })
+    } catch (e: any) {
+      setSync({ etat: 'err', derniere: null, message: e?.message })
+    }
+  }
 
   const set: Ctx['set'] = (maj) => setData((d) => maj(d))
 
@@ -419,6 +557,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     loggerLibre,
     supprimerRepas,
     kcalDuJour,
+    sync,
+    configurerSync,
+    desactiverSync,
+    synchroniserMaintenant,
   }
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

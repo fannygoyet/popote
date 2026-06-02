@@ -6,7 +6,7 @@ import { CalculateurKcal } from '../components/CalculateurKcal'
 import { GOUT_OPTIONS } from '../store/gouts'
 
 export function Profil() {
-  const { data, kcalDuJour, setGout, reset, produit } = useStore()
+  const { data, kcalDuJour, setGout, reset, produit, sync } = useStore()
   const nav = useNavigate()
   const [actif, setActif] = useState(0)
   const [calc, setCalc] = useState(false)
@@ -199,6 +199,16 @@ export function Profil() {
           ))}
         </div>
       </div>
+
+      <button className="carte ligne espace" onClick={() => nav('/sync')} style={{ textAlign: 'left' }}>
+        <div>
+          <strong>🔄 Sync iPhone ↔ iPad</strong>
+          <p className="sous-titre" style={{ margin: '2px 0 0' }}>
+            {sync.etat === 'off' ? 'Désactivée — tout est local' : sync.etat === 'err' ? 'Erreur de sync' : sync.etat === 'sync' ? 'Synchronisation…' : 'Activée ✓'}
+          </p>
+        </div>
+        <span style={{ fontSize: 22 }}>→</span>
+      </button>
 
       <button
         className="btn clair bloc"

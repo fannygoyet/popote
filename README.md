@@ -52,15 +52,40 @@ sur `main`.
 3. À chaque `git push`, le site se met à jour. L'URL ressemble à
    `https://<ton-pseudo>.github.io/<nom-du-repo>/`.
 
+## Sync iPhone ↔ iPad (optionnelle)
+
+L'app marche 100 % en local. Si tu veux les mêmes données sur tes deux appareils,
+active la sync dans **Profil → Sync** :
+
+1. Crée un compte gratuit sur **supabase.com** et un nouveau projet.
+2. **Project Settings → API** : copie l'**URL** et la clé **anon public**.
+3. **SQL Editor** : exécute le script affiché dans l'app (crée la table `popote_sync`) :
+   ```sql
+   create table popote_sync (
+     code text primary key,
+     data jsonb,
+     client_ts bigint
+   );
+   alter table popote_sync enable row level security;
+   create policy "popote" on popote_sync for all using (true) with check (true);
+   ```
+4. Dans l'app, colle l'URL + la clé, choisis un **code de synchro** secret, et mets
+   les mêmes infos (surtout le même code) sur ton iPhone ET ton iPad.
+
+Fonctionnement : tout le contenu est stocké dans une ligne repérée par ton code.
+L'app pousse après chaque modif et récupère à l'ouverture / au retour sur l'app /
+toutes les 30 s. Dernière écriture gagne (pensé pour un seul utilisateur sur deux
+appareils utilisés l'un après l'autre, pas pour de l'édition simultanée).
+
 ## Pile technique
 
 - React + TypeScript + Vite, PWA (service worker + manifest)
-- Stockage local (localStorage), zéro backend
+- Stockage local (localStorage), zéro backend obligatoire
+- Sync optionnelle via Supabase (`@supabase/supabase-js`, chargé à la demande)
 - `@zxing/browser` pour le scan code-barres
 - API Open Food Facts pour produits + nutrition
 
 ## Pour plus tard (voir `SPEC.md`)
 
-- Sync iPhone ↔ iPad (Supabase free tier)
-- Charger la lib de scan à la demande (alléger le bundle)
-- Import/saisie de recettes perso
+- Charger la lib de scan à la demande (alléger le bundle initial)
+- Sync temps réel (Supabase Realtime) au lieu du polling 30 s

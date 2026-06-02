@@ -37,7 +37,7 @@ PAS à la main. Il est le sous-produit de deux gestes déjà faits :
 |-------|----------|
 | Inventaire | Scan code-barres (packagé) **+** ajout rapide pour le frais (poulet, légumes…) |
 | Calories | Récupérées au scan via Open Food Facts ; calcul auto par portion de recette |
-| Sync | iPhone ↔ iPad synchronisés (même données en temps réel) |
+| Sync | iPhone ↔ iPad via Supabase (optionnelle, opt-in dans Profil → Sync) — FAIT |
 | Cœur du MVP | **Mode flemme** (proposition instantanée selon le stock) |
 | Goûts | **Jamais codés en dur** : catalogue partagé + profils de goûts par utilisateur (modèle Spotify) |
 | Plateforme | PWA (web app installable sur l'écran d'accueil iOS), GitHub Pages |

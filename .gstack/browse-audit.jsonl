@@ -61,3 +61,14 @@
 {"ts":"2026-06-02T19:08:42.205Z","cmd":"js","args":"location.hash","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:08:42.427Z","cmd":"screenshot","args":"/tmp/popote-cree-detail2.png","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":103,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:08:42.547Z","cmd":"console","args":"","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:28:37.710Z","cmd":"js","args":"location.href='http://localhost:5173/'","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:28:39.855Z","cmd":"goto","args":"http://localhost:5173/#/sync","origin":"http://localhost:5173/#/sync","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:28:41.099Z","cmd":"screenshot","args":"/tmp/popote-sync.png","origin":"http://localhost:5173/#/sync","durationMs":118,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:28:41.228Z","cmd":"console","args":"","origin":"http://localhost:5173/#/sync","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:28:59.948Z","cmd":"fill","args":"input[placeholder*=\"supabase.co\"] https://invalid-xyz.supabase.co","origin":"http://localhost:5173/#/sync","durationMs":14,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:00.083Z","cmd":"fill","args":"input[placeholder*=\"eyJ\"] cle-bidon","origin":"http://localhost:5173/#/sync","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:00.214Z","cmd":"fill","args":"input[placeholder*=\"popote-maison\"] test-code","origin":"http://localhost:5173/#/sync","durationMs":7,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:01.352Z","cmd":"eval","args":"/tmp/sync-act.js","origin":"http://localhost:5173/#/sync","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:05.579Z","cmd":"screenshot","args":"/tmp/popote-sync-err.png","origin":"http://localhost:5173/#/sync","durationMs":92,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:30.639Z","cmd":"screenshot","args":"/tmp/popote-sync-err2.png","origin":"http://localhost:5173/#/sync","durationMs":77,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:29:30.763Z","cmd":"js","args":"[...document.querySelectorAll('.carte,.tag,p')].map(e=>e.textContent).filter(t=>/chec|rror|Erreur|fetch|network/i.test(t)).slice(0,3)","origin":"http://localhost:5173/#/sync","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
