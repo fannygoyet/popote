@@ -75,6 +75,7 @@ interface Ctx {
   // personnes
   ajouterPersonne: (p: Omit<Personne, 'id'>) => string
   majPersonne: (id: string, maj: Partial<Personne>) => void
+  supprimerPersonne: (id: string) => void
   // stock
   setStock: (produitId: string, quantite: number, opts?: Partial<StockItem>) => void
   ajusterStock: (produitId: string, delta: number) => void
@@ -284,6 +285,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     set((d) => ({
       ...d,
       personnes: d.personnes.map((p) => (p.id === id ? { ...p, ...maj } : p)),
+    }))
+
+  const supprimerPersonne: Ctx['supprimerPersonne'] = (id) =>
+    set((d) => ({
+      ...d,
+      personnes: d.personnes.filter((p) => p.id !== id),
+      avis: d.avis.filter((a) => a.personneId !== id),
+      journal: d.journal.filter((j) => j.personneId !== id),
+      planning: d.planning.map((p) => ({ ...p, pour: p.pour.filter((x) => x !== id) })),
     }))
 
   const setStock: Ctx['setStock'] = (produitId, quantite, opts) =>
@@ -551,6 +561,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     upsertProduit,
     ajouterPersonne,
     majPersonne,
+    supprimerPersonne,
     setStock,
     ajusterStock,
     setGout,

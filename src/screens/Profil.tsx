@@ -5,13 +5,20 @@ import { aujourdhui } from '../store/util'
 import { CalculateurKcal } from '../components/CalculateurKcal'
 import { GOUT_OPTIONS } from '../store/gouts'
 
+const EMOJIS = ['👩', '👧', '👦', '🧑', '👨', '👵', '👴', '🧒', '👶', '🐱']
+
 export function Profil() {
-  const { data, kcalDuJour, setGout, reset, produit, sync } = useStore()
+  const { data, kcalDuJour, setGout, reset, produit, sync, ajouterPersonne, majPersonne, supprimerPersonne } =
+    useStore()
   const nav = useNavigate()
   const [actif, setActif] = useState(0)
   const [calc, setCalc] = useState(false)
   const [rechProd, setRechProd] = useState('')
-  const personne = data.personnes[actif]
+  const [ajout, setAjout] = useState(false)
+  const [nNom, setNNom] = useState('')
+  const [nEmoji, setNEmoji] = useState('👦')
+  const [editProfil, setEditProfil] = useState(false)
+  const personne = data.personnes[Math.min(actif, Math.max(0, data.personnes.length - 1))]
 
   // produits hors liste curatée, pour ajouter un goût/dégoût sur n'importe quel ingrédient
   const resultatsProd = useMemo(() => {
@@ -83,6 +90,89 @@ export function Profil() {
             {p.emoji} {p.nom}
           </button>
         ))}
+        <button className="chip" onClick={() => setAjout((a) => !a)} style={{ background: 'var(--menthe-clair)' }}>
+          ➕ Ajouter
+        </button>
+      </div>
+
+      {/* Ajouter une personne */}
+      {ajout && (
+        <div className="carte pile" style={{ gap: 12 }}>
+          <strong>Nouvelle personne</strong>
+          <div className="ligne" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {EMOJIS.map((e) => (
+              <button
+                key={e}
+                className={'chip' + (nEmoji === e ? ' actif' : '')}
+                onClick={() => setNEmoji(e)}
+                style={{ fontSize: 20, padding: '6px 10px' }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+          <input className="champ" placeholder="Prénom (ex. ton fils)" value={nNom} onChange={(e) => setNNom(e.target.value)} />
+          <button
+            className="btn bloc"
+            disabled={!nNom.trim()}
+            onClick={() => {
+              const id = ajouterPersonne({ nom: nNom.trim(), emoji: nEmoji, gouts: {} })
+              setActif(data.personnes.length) // sélectionne le nouveau
+              setNNom('')
+              setNEmoji('👦')
+              setAjout(false)
+              void id
+            }}
+          >
+            Ajouter {nNom.trim() || 'cette personne'}
+          </button>
+        </div>
+      )}
+
+      {/* Modifier / supprimer le profil sélectionné */}
+      <div className="carte pile" style={{ gap: 10 }}>
+        <button className="ligne espace" onClick={() => setEditProfil((v) => !v)} style={{ textAlign: 'left' }}>
+          <strong>
+            {personne.emoji} {personne.nom}
+          </strong>
+          <span className="tag">{editProfil ? 'Fermer' : 'Modifier'}</span>
+        </button>
+        {editProfil && (
+          <>
+            <div className="ligne" style={{ flexWrap: 'wrap', gap: 6 }}>
+              {EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  className={'chip' + (personne.emoji === e ? ' actif' : '')}
+                  onClick={() => majPersonne(personne.id, { emoji: e })}
+                  style={{ fontSize: 20, padding: '6px 10px' }}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+            <input
+              className="champ"
+              value={personne.nom}
+              onChange={(e) => majPersonne(personne.id, { nom: e.target.value })}
+            />
+            {data.personnes.length > 1 && (
+              <button
+                className="btn fantome petit"
+                style={{ color: '#a33a63' }}
+                onClick={() => {
+                  if (confirm(`Supprimer le profil de ${personne.nom} ?`)) {
+                    supprimerPersonne(personne.id)
+                    setActif(0)
+                    setEditProfil(false)
+                  }
+                }}
+              >
+                Supprimer ce profil
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Calories du jour */}

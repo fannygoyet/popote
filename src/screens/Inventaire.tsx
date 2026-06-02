@@ -93,10 +93,32 @@ export function Inventaire() {
             {items.map((s) => (
               <div className="carte ligne espace" key={s.produitId} style={{ padding: '12px 16px' }}>
                 <span style={{ fontWeight: 700 }}>{produit(s.produitId)?.nom ?? s.produitId}</span>
-                <div className="compteur">
-                  <button onClick={() => ajusterStock(s.produitId, -1)}>−</button>
-                  <span className="v">{s.quantite}</span>
-                  <button onClick={() => ajusterStock(s.produitId, 1)}>+</button>
+                <div className="ligne" style={{ gap: 8 }}>
+                  {s.quantite > 1 && (
+                    <div className="compteur">
+                      <button onClick={() => ajusterStock(s.produitId, -1)}>−</button>
+                      <span className="v">{s.quantite}</span>
+                      <button onClick={() => ajusterStock(s.produitId, 1)}>+</button>
+                    </div>
+                  )}
+                  {s.quantite <= 1 && (
+                    <button
+                      className="chip"
+                      onClick={() => ajusterStock(s.produitId, 1)}
+                      title="J'en ai plusieurs"
+                      style={{ padding: '6px 12px' }}
+                    >
+                      +
+                    </button>
+                  )}
+                  <button
+                    className="rond"
+                    style={{ width: 34, height: 34, background: 'var(--rose-clair)', color: '#a33a63' }}
+                    title="J'en ai plus"
+                    onClick={() => setStock(s.produitId, 0)}
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             ))}
@@ -140,6 +162,9 @@ export function Inventaire() {
                 Fermer
               </button>
             </div>
+            <p className="sous-titre" style={{ margin: 0 }}>
+              Tape sur ce que tu as. Pas besoin de quantité — c'est juste « j'en ai ». 🙂
+            </p>
             <input
               className="champ"
               autoFocus
@@ -147,25 +172,30 @@ export function Inventaire() {
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
             />
-            {resultats.map((p) => (
-              <div className="carte ligne espace" key={p.id} style={{ padding: '12px 16px' }}>
-                <div>
-                  <strong>{p.nom}</strong>
-                  <div className="sous-titre" style={{ fontSize: 12 }}>
-                    {p.kcal100 ? `${p.kcal100} kcal/100g` : 'kcal inconnu'} · {p.rayon}
-                  </div>
-                </div>
+            {resultats.map((p) => {
+              const dedans = qte(p.id) > 0
+              return (
                 <button
-                  className="btn petit"
+                  className="carte ligne espace"
+                  key={p.id}
+                  style={{ padding: '12px 16px', textAlign: 'left', background: dedans ? 'var(--menthe-clair)' : undefined }}
                   onClick={() => {
-                    setStock(p.id, qte(p.id) + 1)
-                    setMsg(`+1 ${p.nom}`)
+                    setStock(p.id, dedans ? 0 : 1)
+                    setMsg(dedans ? `Retiré : ${p.nom}` : `Ajouté : ${p.nom}`)
                   }}
                 >
-                  + {qte(p.id) > 0 ? `(${qte(p.id)})` : ''}
+                  <div>
+                    <strong>{p.nom}</strong>
+                    <div className="sous-titre" style={{ fontSize: 12 }}>
+                      {p.kcal100 ? `${p.kcal100} kcal/100g` : 'kcal inconnu'} · {p.rayon}
+                    </div>
+                  </div>
+                  <span className="tag" style={dedans ? { background: 'var(--menthe)', color: '#2c6b53' } : { background: 'var(--lilas-clair)', color: 'var(--lilas)' }}>
+                    {dedans ? '✓ j\'en ai' : '+ ajouter'}
+                  </span>
                 </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
