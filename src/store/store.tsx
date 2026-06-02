@@ -13,6 +13,7 @@ import type {
   StockItem,
 } from './types'
 import { PRODUITS_SEED, RECETTES_SEED } from './seed'
+import { aujourdhui } from './util'
 
 const KEY = 'popote.data.v1'
 const VERSION = 1
@@ -54,10 +55,6 @@ function mergeById<T extends { id: string }>(base: T[], extra: T[]): T[] {
   return [...map.values()]
 }
 
-export function aujourdhui(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 }
@@ -85,6 +82,8 @@ interface Ctx {
   // recettes
   scoreRecette: (r: Recette, pour: string[]) => number
   faisabilite: (r: Recette) => { ok: boolean; manquants: Ingredient[] }
+  addRecette: (r: Omit<Recette, 'id'> & { id?: string }) => string
+  supprimerRecette: (id: string) => void
   // valide une recette cuisinée : déduit du stock les quantités explicitement choisies
   confirmerRecette: (
     recetteId: string,
@@ -241,6 +240,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return score
   }
 
+  const addRecette: Ctx['addRecette'] = (r) => {
+    const id = r.id ?? 'perso-' + uid()
+    set((d) => ({ ...d, recettes: mergeById(d.recettes, [{ ...r, id, perso: true }]) }))
+    return id
+  }
+
+  const supprimerRecette: Ctx['supprimerRecette'] = (id) =>
+    set((d) => ({
+      ...d,
+      recettes: d.recettes.filter((r) => r.id !== id),
+      planning: d.planning.filter((p) => p.recetteId !== id),
+    }))
+
   const confirmerRecette: Ctx['confirmerRecette'] = (recetteId, portions, pour, deductions) =>
     set((d) => {
       const r = d.recettes.find((x) => x.id === recetteId)
@@ -394,6 +406,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     avisPour,
     scoreRecette,
     faisabilite,
+    addRecette,
+    supprimerRecette,
     confirmerRecette,
     ajouterAuxCourses,
     toggleCourse,

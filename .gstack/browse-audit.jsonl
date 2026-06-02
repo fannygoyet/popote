@@ -28,3 +28,36 @@
 {"ts":"2026-06-02T18:43:56.471Z","cmd":"eval","args":"/tmp/click-calc.js","origin":"http://localhost:5173/#/profil","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T18:43:57.850Z","cmd":"screenshot","args":"/tmp/popote-calc.png","origin":"http://localhost:5173/#/profil","durationMs":243,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T18:43:57.970Z","cmd":"console","args":"","origin":"http://localhost:5173/#/profil","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:03:36.101Z","cmd":"goto","args":"http://localhost:5173/#/creer-recette","origin":"http://localhost:5173/#/creer-recette","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:03:37.395Z","cmd":"screenshot","args":"/tmp/popote-creer.png","origin":"http://localhost:5173/#/creer-recette","durationMs":161,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:03:37.524Z","cmd":"console","args":"","origin":"http://localhost:5173/#/creer-recette","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:05.109Z","cmd":"goto","args":"http://localhost:5173/#/creer-recette","origin":"http://localhost:5173/#/creer-recette","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:06.276Z","cmd":"fill","args":"input[placeholder*=\"Nom de la\"] Spaghetti saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":39,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:06.408Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":11,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:07.543Z","cmd":"eval","args":"/tmp/c1.js","origin":"http://localhost:5173/#/creer-recette","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:07.677Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] Pâtes","origin":"http://localhost:5173/#/creer-recette","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:08.817Z","cmd":"eval","args":"/tmp/c2.js","origin":"http://localhost:5173/#/creer-recette","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:04:10.118Z","cmd":"screenshot","args":"/tmp/popote-creer2.png","origin":"http://localhost:5173/#/creer-recette","durationMs":167,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:27.990Z","cmd":"goto","args":"http://localhost:5173/#/creer-recette","origin":"http://localhost:5173/#/creer-recette","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:29.147Z","cmd":"fill","args":"input[placeholder*=\"Nom de la\"] Spaghetti saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":26,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:29.277Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:30.412Z","cmd":"eval","args":"/tmp/c1.js","origin":"http://localhost:5173/#/creer-recette","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:30.542Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] Pâtes","origin":"http://localhost:5173/#/creer-recette","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:31.670Z","cmd":"eval","args":"/tmp/c2.js","origin":"http://localhost:5173/#/creer-recette","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:32.963Z","cmd":"screenshot","args":"/tmp/popote-creer3.png","origin":"http://localhost:5173/#/creer-recette","durationMs":165,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:51.929Z","cmd":"eval","args":"/tmp/c3.js","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:53.057Z","cmd":"js","args":"location.hash","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:53.299Z","cmd":"screenshot","args":"/tmp/popote-cree-detail.png","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":121,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:06:53.422Z","cmd":"console","args":"","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:07:11.424Z","cmd":"console","args":"","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:34.096Z","cmd":"js","args":"location.href='http://localhost:5173/'","origin":"http://localhost:5173/#/recettes/perso-9133kirsmpx0e4y9","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:36.239Z","cmd":"goto","args":"http://localhost:5173/#/creer-recette","origin":"http://localhost:5173/#/creer-recette","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:37.394Z","cmd":"fill","args":"input[placeholder*=\"Nom de la\"] Spaghetti saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":29,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:37.527Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] saumon","origin":"http://localhost:5173/#/creer-recette","durationMs":11,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:38.665Z","cmd":"eval","args":"/tmp/c1.js","origin":"http://localhost:5173/#/creer-recette","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:38.800Z","cmd":"fill","args":"input[placeholder*=\"ingr\"] Pâtes","origin":"http://localhost:5173/#/creer-recette","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:39.938Z","cmd":"eval","args":"/tmp/c2.js","origin":"http://localhost:5173/#/creer-recette","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:41.078Z","cmd":"eval","args":"/tmp/c3.js","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":10,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:42.205Z","cmd":"js","args":"location.hash","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:42.427Z","cmd":"screenshot","args":"/tmp/popote-cree-detail2.png","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":103,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:08:42.547Z","cmd":"console","args":"","origin":"http://localhost:5173/#/recettes/perso-t8t3d2lampx0gh67","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}

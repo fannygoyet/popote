@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore, aujourdhui } from '../store/store'
+import { useStore } from '../store/store'
+import { aujourdhui } from '../store/util'
 import { CalculateurKcal } from '../components/CalculateurKcal'
 import { GOUT_OPTIONS } from '../store/gouts'
 

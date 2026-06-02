@@ -56,6 +56,7 @@ export interface Recette {
   proteine: number
   legume: number
   feculent: number
+  perso?: boolean // créée par l'utilisateur (modifiable / supprimable)
 }
 
 export type Sexe = 'F' | 'H'

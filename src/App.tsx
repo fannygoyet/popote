@@ -11,6 +11,7 @@ import { Planning } from './screens/Planning'
 import { Courses } from './screens/Courses'
 import { Profil } from './screens/Profil'
 import { Manger } from './screens/Manger'
+import { CreerRecette } from './screens/CreerRecette'
 
 export default function App() {
   const { data } = useStore()
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/" element={<Accueil />} />
         <Route path="/flemme" element={<Flemme />} />
         <Route path="/recettes" element={<Recettes />} />
+        <Route path="/creer-recette" element={<CreerRecette />} />
         <Route path="/recettes/:id" element={<RecetteDetail />} />
         <Route path="/inventaire" element={<Inventaire />} />
         <Route path="/planning" element={<Planning />} />

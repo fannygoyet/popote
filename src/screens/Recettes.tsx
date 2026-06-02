@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { RecetteCarte } from '../components/RecetteCarte'
 
-const FILTRES = ['Tout', 'Faisable', 'Aimées', 'Jamais testées', 'Rapide', 'Végé', 'Enfant']
+const FILTRES = ['Tout', 'Mes recettes', 'Faisable', 'Aimées', 'Jamais testées', 'Rapide', 'Végé', 'Enfant']
 
 export function Recettes() {
   const { data, faisabilite } = useStore()
@@ -17,6 +17,8 @@ export function Recettes() {
       .filter(({ r }) => r.nom.toLowerCase().includes(q.toLowerCase().trim()))
       .filter(({ r, f }) => {
         switch (filtre) {
+          case 'Mes recettes':
+            return !!r.perso
           case 'Faisable':
             return f.ok
           case 'Aimées':
@@ -44,6 +46,10 @@ export function Recettes() {
           <p className="sous-titre">{data.recettes.length} recettes dans ta popothèque</p>
         </div>
       </div>
+
+      <button className="btn bloc" onClick={() => nav('/creer-recette')}>
+        ➕ Créer une recette
+      </button>
 
       <input
         className="champ"

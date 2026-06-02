@@ -98,6 +98,32 @@ export const SUBSTITUTS: Record<string, string[]> = {
   semoule: ['riz'],
 }
 
+// Poids typique d'une "pièce" (en g), pour estimer les calories même quand on
+// compte à l'unité (1 œuf, 1 banane…) plutôt qu'en grammes.
+export const POIDS_PIECE: Record<string, number> = {
+  oeuf: 60,
+  banane: 120,
+  pomme: 150,
+  pain: 30,
+  tortilla: 60,
+  avocat: 150,
+  'poisson-pane': 75,
+  saucisse: 80,
+  yaourt: 125,
+  carotte: 120,
+  oignon: 110,
+  echalote: 30,
+  poireau: 150,
+  courgette: 200,
+  aubergine: 250,
+  brocoli: 300,
+  poivron: 150,
+  tomate: 120,
+  ail: 5,
+  'pate-brisee': 230,
+}
+
+
 // --- Recettes de départ ----------------------------------------------------
 // (ingrédients liés aux produits ci-dessus, temps réels, kcal par portion estimé)
 

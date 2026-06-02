@@ -177,6 +177,11 @@ export function RecetteDetail() {
           <button className="btn bloc" disabled={pour.length === 0} onClick={() => setPhase('confirm')}>
             🍳 J'ai cuisiné ça !
           </button>
+          {r.perso && (
+            <button className="btn clair bloc" onClick={() => nav('/creer-recette', { state: { edit: r } })}>
+              ✏️ Modifier cette recette
+            </button>
+          )}
         </>
       )}
 

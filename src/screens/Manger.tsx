@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore, aujourdhui } from '../store/store'
+import { useStore } from '../store/store'
+import { aujourdhui } from '../store/util'
 import { Mascotte } from '../components/Mascotte'
 
 const PRESETS = [
@@ -122,6 +123,11 @@ export function Manger() {
           <button className="btn bloc" disabled={!libelle || !kcal || qui.length === 0} onClick={() => logLibre(libelle, +kcal)}>
             Ajouter au journal
           </button>
+          {libelle.trim() && (
+            <button className="btn fantome bloc" onClick={() => nav('/creer-recette', { state: { nom: libelle.trim() } })}>
+              💾 Tu la referas ? En faire une recette
+            </button>
+          )}
 
           <span className="label">Ou un raccourci :</span>
           <div className="tags">
