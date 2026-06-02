@@ -13,6 +13,7 @@ import { Profil } from './screens/Profil'
 import { Manger } from './screens/Manger'
 import { CreerRecette } from './screens/CreerRecette'
 import { Sync } from './screens/Sync'
+import { Enfant } from './screens/Enfant'
 
 export default function App() {
   const { data } = useStore()
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/planning" element={<Planning />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/manger" element={<Manger />} />
+        <Route path="/enfant" element={<Enfant />} />
         <Route path="/profil" element={<Profil />} />
         <Route path="/sync" element={<Sync />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -80,3 +80,10 @@
 {"ts":"2026-06-02T19:39:25.253Z","cmd":"js","args":"localStorage.getItem('popote.sync')","origin":"http://localhost:5173/#/sync","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:39:25.376Z","cmd":"js","args":"localStorage.getItem('popote.ts')","origin":"http://localhost:5173/#/sync","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
 {"ts":"2026-06-02T19:39:31.507Z","cmd":"console","args":"","origin":"http://localhost:5173/#/sync","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:15.090Z","cmd":"js","args":"localStorage.setItem('popote.data.v1', JSON.stringify({version:1,onboardingFait:true,personnes:[{id:'p1',nom:'Mia',emoji:'👩',gouts:{}},{id:'p2',nom:'Ezio',emoji:'👦',age:7,gouts:{'tag:enfant':1,'prod…","origin":"http://localhost:5173/#/enfant","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:17.322Z","cmd":"screenshot","args":"/tmp/popote-enfant1.png","origin":"http://localhost:5173/#/enfant","durationMs":92,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:33.245Z","cmd":"eval","args":"/tmp/e1.js","origin":"http://localhost:5173/#/enfant","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:34.495Z","cmd":"screenshot","args":"/tmp/popote-enfant2.png","origin":"http://localhost:5173/#/enfant","durationMs":123,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:34.619Z","cmd":"eval","args":"/tmp/e2.js","origin":"http://localhost:5173/#/enfant","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:35.819Z","cmd":"screenshot","args":"/tmp/popote-enfant3.png","origin":"http://localhost:5173/#/enfant","durationMs":70,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-02T19:45:35.941Z","cmd":"console","args":"","origin":"http://localhost:5173/#/enfant","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}

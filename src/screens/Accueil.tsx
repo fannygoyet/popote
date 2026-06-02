@@ -64,6 +64,18 @@ export function Accueil() {
         🍽️ J'ai mangé (resto, grignotage…)
       </button>
 
+      <button
+        className="carte-pleine ligne"
+        onClick={() => nav('/enfant')}
+        style={{ gap: 14, background: 'linear-gradient(150deg, var(--rose-clair), var(--beurre-clair))', textAlign: 'left' }}
+      >
+        <span style={{ fontSize: 40 }}>🧒</span>
+        <div>
+          <strong style={{ fontSize: 18 }}>Mode enfant</strong>
+          <div style={{ fontSize: 13, color: 'var(--texte-doux)' }}>Laisse ton loulou choisir le repas</div>
+        </div>
+      </button>
+
       {/* Stats rapides */}
       <div className="grille-2">
         <div className="stat" style={{ background: 'var(--lilas-clair)' }}>
