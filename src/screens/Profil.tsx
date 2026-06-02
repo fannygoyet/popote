@@ -7,6 +7,32 @@ import { GOUT_OPTIONS } from '../store/gouts'
 
 const EMOJIS = ['👩', '👧', '👦', '🧑', '👨', '👵', '👴', '🧒', '👶', '🐱']
 
+const APPETITS: { v: number; label: string }[] = [
+  { v: 0.5, label: '🥄 Petite' },
+  { v: 1, label: '🍽️ Normale' },
+  { v: 1.5, label: '🍴 Grosse' },
+]
+
+// suggère un appétit selon l'âge (enfant -> plus petite part)
+function partSelonAge(age?: number): number {
+  if (age == null) return 1
+  if (age <= 8) return 0.5
+  if (age <= 12) return 0.75
+  return 1
+}
+
+function AppetitChips({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="tags">
+      {APPETITS.map((a) => (
+        <button key={a.v} className={'chip' + (value === a.v ? ' actif' : '')} onClick={() => onChange(a.v)}>
+          {a.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function Profil() {
   const { data, kcalDuJour, setGout, reset, produit, sync, ajouterPersonne, majPersonne, supprimerPersonne } =
     useStore()
@@ -17,6 +43,8 @@ export function Profil() {
   const [ajout, setAjout] = useState(false)
   const [nNom, setNNom] = useState('')
   const [nEmoji, setNEmoji] = useState('👦')
+  const [nAge, setNAge] = useState<number | ''>('')
+  const [nPart, setNPart] = useState(1)
   const [editProfil, setEditProfil] = useState(false)
   const personne = data.personnes[Math.min(actif, Math.max(0, data.personnes.length - 1))]
 
@@ -112,16 +140,39 @@ export function Profil() {
             ))}
           </div>
           <input className="champ" placeholder="Prénom (ex. ton fils)" value={nNom} onChange={(e) => setNNom(e.target.value)} />
+          <input
+            className="champ"
+            type="number"
+            inputMode="numeric"
+            placeholder="Âge (optionnel)"
+            value={nAge}
+            onChange={(e) => {
+              const v = e.target.value ? +e.target.value : ''
+              setNAge(v)
+              if (v !== '') setNPart(partSelonAge(v)) // suggère l'appétit selon l'âge
+            }}
+          />
+          <div>
+            <span className="label">Appétit (pour la taille des portions / calories)</span>
+            <AppetitChips value={nPart} onChange={setNPart} />
+          </div>
           <button
             className="btn bloc"
             disabled={!nNom.trim()}
             onClick={() => {
-              const id = ajouterPersonne({ nom: nNom.trim(), emoji: nEmoji, gouts: {} })
+              ajouterPersonne({
+                nom: nNom.trim(),
+                emoji: nEmoji,
+                gouts: {},
+                age: nAge === '' ? undefined : nAge,
+                part: nPart,
+              })
               setActif(data.personnes.length) // sélectionne le nouveau
               setNNom('')
               setNEmoji('👦')
+              setNAge('')
+              setNPart(1)
               setAjout(false)
-              void id
             }}
           >
             Ajouter {nNom.trim() || 'cette personne'}
@@ -156,6 +207,23 @@ export function Profil() {
               value={personne.nom}
               onChange={(e) => majPersonne(personne.id, { nom: e.target.value })}
             />
+            <input
+              className="champ"
+              type="number"
+              inputMode="numeric"
+              placeholder="Âge (optionnel)"
+              value={personne.age ?? ''}
+              onChange={(e) =>
+                majPersonne(personne.id, {
+                  age: e.target.value ? +e.target.value : undefined,
+                  part: e.target.value ? partSelonAge(+e.target.value) : personne.part,
+                })
+              }
+            />
+            <div>
+              <span className="label">Appétit</span>
+              <AppetitChips value={personne.part ?? 1} onChange={(v) => majPersonne(personne.id, { part: v })} />
+            </div>
             {data.personnes.length > 1 && (
               <button
                 className="btn fantome petit"

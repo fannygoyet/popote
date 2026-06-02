@@ -432,14 +432,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               : stock.map((x) => (x.produitId === ded.produitId ? { ...x, quantite: q, majLe: Date.now() } : x))
         }
       }
-      // journalise pour les calories (réparti entre les convives)
+      // journalise pour les calories, réparti selon l'appétit de chacun
+      // (un enfant compte pour une plus petite part qu'un adulte)
       const date = aujourdhui()
-      const logs: RepasMange[] = pour.map((pid) => ({
+      const parts = pour.map((pid) => d.personnes.find((p) => p.id === pid)?.part ?? 1)
+      const sommeParts = parts.reduce((a, b) => a + b, 0) || 1
+      const logs: RepasMange[] = pour.map((pid, i) => ({
         id: uid(),
         date,
         recetteId,
         personneId: pid,
-        portions: portions / Math.max(pour.length, 1),
+        portions: portions * (parts[i] / sommeParts),
         majLe: Date.now(),
       }))
       return { ...d, stock, journal: [...d.journal, ...logs] }

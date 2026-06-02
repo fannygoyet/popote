@@ -70,6 +70,7 @@ export interface Personne {
   age?: number
   // goûts : map produitId/tag -> note (-1 pas aimé, 0 moyen, 1 aimé)
   gouts: Record<string, -1 | 0 | 1>
+  part?: number // appétit : part d'une portion adulte (0.5 enfant, 1 normal, 1.5 gros) — défaut 1
   objectifKcal?: number // null/absent = pas de suivi calories pour cette personne
   // données pour (re)calculer l'objectif kcal
   sexe?: Sexe
