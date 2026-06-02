@@ -60,6 +60,10 @@ export function Accueil() {
         </button>
       </div>
 
+      <button className="btn fantome bloc" onClick={() => nav('/manger')}>
+        🍽️ J'ai mangé (resto, grignotage…)
+      </button>
+
       {/* Stats rapides */}
       <div className="grille-2">
         <div className="stat" style={{ background: 'var(--lilas-clair)' }}>

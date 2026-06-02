@@ -58,6 +58,10 @@ export interface Recette {
   feculent: number
 }
 
+export type Sexe = 'F' | 'H'
+export type Activite = 'sedentaire' | 'leger' | 'modere' | 'intense' | 'tres-intense'
+export type ObjectifType = 'perdre' | 'maintenir' | 'prendre'
+
 export interface Personne {
   id: string
   nom: string
@@ -66,6 +70,12 @@ export interface Personne {
   // goûts : map produitId/tag -> note (-1 pas aimé, 0 moyen, 1 aimé)
   gouts: Record<string, -1 | 0 | 1>
   objectifKcal?: number // null/absent = pas de suivi calories pour cette personne
+  // données pour (re)calculer l'objectif kcal
+  sexe?: Sexe
+  taille?: number // cm
+  poids?: number // kg
+  activite?: Activite
+  objectifType?: ObjectifType
 }
 
 export interface AvisRecette {
@@ -93,10 +103,14 @@ export interface RepasPlanifie {
 }
 
 // Journal de ce qui a été mangé -> suivi calories.
+// Soit une recette du catalogue (recetteId), soit une saisie libre (libelle + kcalManuel).
 export interface RepasMange {
   id: string
   date: string // 'YYYY-MM-DD'
-  recetteId: string
+  recetteId?: string
+  libelle?: string // ex. "Restaurant - burger", "Pomme"
+  kcalManuel?: number // kcal total de l'entrée (saisie libre)
+  moment?: Moment
   personneId: string
   portions: number
   majLe: number

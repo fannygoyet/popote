@@ -1,12 +1,26 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, aujourdhui } from '../store/store'
+import { CalculateurKcal } from '../components/CalculateurKcal'
+import { GOUT_OPTIONS } from '../store/gouts'
 
 export function Profil() {
-  const { data, kcalDuJour, majPersonne, reset } = useStore()
+  const { data, kcalDuJour, setGout, reset, produit } = useStore()
   const nav = useNavigate()
   const [actif, setActif] = useState(0)
+  const [calc, setCalc] = useState(false)
+  const [rechProd, setRechProd] = useState('')
   const personne = data.personnes[actif]
+
+  // produits hors liste curatée, pour ajouter un goût/dégoût sur n'importe quel ingrédient
+  const resultatsProd = useMemo(() => {
+    const q = rechProd.toLowerCase().trim()
+    if (!q) return []
+    const dejaListes = new Set(GOUT_OPTIONS.map((o) => o.cle))
+    return data.produits
+      .filter((p) => p.nom.toLowerCase().includes(q) && !dejaListes.has(`prod:${p.id}`))
+      .slice(0, 12)
+  }, [data.produits, rechProd])
 
   if (!personne) {
     return (
@@ -33,19 +47,35 @@ export function Profil() {
     .map((a) => data.recettes.find((r) => r.id === a.recetteId))
     .filter(Boolean)
 
+  function TroisBoutons({ cle }: { cle: string }) {
+    const v = personne.gouts[cle]
+    return (
+      <div className="ligne" style={{ gap: 6 }}>
+        <button className={'chip aime' + (v === 1 ? ' actif' : '')} onClick={() => setGout(personne.id, cle, 1)}>
+          👍
+        </button>
+        <button className={'chip moyen' + (v === 0 ? ' actif' : '')} onClick={() => setGout(personne.id, cle, 0)}>
+          😐
+        </button>
+        <button className={'chip pasaime' + (v === -1 ? ' actif' : '')} onClick={() => setGout(personne.id, cle, -1)}>
+          👎
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="ecran pile" style={{ gap: 16 }}>
       <div className="entete">
         <div>
           <h1>Profil</h1>
-          <p className="sous-titre">Calories & préférences</p>
+          <p className="sous-titre">Calories, goûts & préférences</p>
         </div>
         <button className="rond" onClick={() => nav('/')}>
           ✕
         </button>
       </div>
 
-      {/* Sélecteur de personne */}
       <div className="tags">
         {data.personnes.map((p, i) => (
           <button key={p.id} className={'chip' + (actif === i ? ' actif' : '')} onClick={() => setActif(i)}>
@@ -62,48 +92,98 @@ export function Profil() {
         </div>
         <div style={{ fontSize: 34, fontWeight: 900 }}>
           {kcal}
-          {objectif > 0 && (
-            <span style={{ fontSize: 16, color: 'var(--texte-doux)', fontWeight: 700 }}> / {objectif} kcal</span>
-          )}
+          {objectif > 0 && <span style={{ fontSize: 16, color: 'var(--texte-doux)', fontWeight: 700 }}> / {objectif} kcal</span>}
         </div>
         {objectif > 0 && (
           <div className="barre">
             <span style={{ width: pct + '%', background: pct > 100 ? 'var(--peche)' : 'var(--lilas)' }} />
           </div>
         )}
-        <div className="ligne" style={{ gap: 8 }}>
-          <span className="label" style={{ margin: 0 }}>
-            Objectif :
-          </span>
-          <input
-            className="champ"
-            type="number"
-            style={{ maxWidth: 130 }}
-            placeholder="kcal/jour"
-            value={personne.objectifKcal ?? ''}
-            onChange={(e) =>
-              majPersonne(personne.id, {
-                objectifKcal: e.target.value ? +e.target.value : undefined,
-              })
-            }
-          />
+        <div className="grille-2">
+          <button className="btn fantome bloc petit" onClick={() => setCalc(true)}>
+            {objectif > 0 ? '⚖️ Ajuster mon objectif' : '🎯 Calculer mon objectif'}
+          </button>
+          <button className="btn bloc petit" onClick={() => nav('/manger')}>
+            🍽️ J'ai mangé
+          </button>
         </div>
+        {objectif === 0 && (
+          <p className="sous-titre" style={{ margin: 0 }}>
+            Tu ne sais pas quoi mettre ? Lance le calcul, je t'explique tout. 😊
+          </p>
+        )}
       </div>
 
       {/* Repas du jour */}
       <div className="carte pile" style={{ gap: 10 }}>
         <strong>🍽️ Mes repas du jour</strong>
-        {repasDuJour.length === 0 && <span className="sous-titre">Rien de noté. Cuisine une recette et valide « J'ai cuisiné ».</span>}
+        {repasDuJour.length === 0 && (
+          <span className="sous-titre">Rien de noté. Cuisine une recette, ou utilise « J'ai mangé ».</span>
+        )}
         {repasDuJour.map(({ j, r }) => (
           <div className="ligne espace" key={j.id}>
             <span>
-              {r?.emoji} {r?.nom ?? '—'}
+              {r?.emoji ?? '🍴'} {j.libelle ?? r?.nom ?? '—'}
             </span>
             <span style={{ fontWeight: 700, color: 'var(--texte-doux)' }}>
-              {Math.round((r?.kcalPortion ?? 0) * j.portions)} kcal
+              {j.kcalManuel != null ? j.kcalManuel : Math.round((r?.kcalPortion ?? 0) * j.portions)} kcal
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Éditeur de goûts (évolutif) */}
+      <div className="carte pile" style={{ gap: 10 }}>
+        <strong>😋 Les goûts de {personne.nom}</strong>
+        <p className="sous-titre" style={{ margin: 0 }}>
+          Ça affine les propositions. Et chaque fois que tu notes une recette, ça s'améliore tout seul.
+        </p>
+        {GOUT_OPTIONS.map((o) => (
+          <div className="ligne espace" key={o.cle}>
+            <span style={{ fontWeight: 700 }}>
+              {o.emoji} {o.label}
+            </span>
+            <TroisBoutons cle={o.cle} />
+          </div>
+        ))}
+
+        <span className="label" style={{ marginTop: 6 }}>
+          Ajouter un aliment précis (ex. l'oignon que {personne.nom} déteste)
+        </span>
+        <input className="champ" placeholder="🔍 oignon, brocoli, crevettes…" value={rechProd} onChange={(e) => setRechProd(e.target.value)} />
+        {resultatsProd.map((p) => (
+          <div className="ligne espace" key={p.id}>
+            <span style={{ fontWeight: 700 }}>{p.nom}</span>
+            <TroisBoutons cle={`prod:${p.id}`} />
+          </div>
+        ))}
+
+        {/* Récap des aliments pas aimés déjà enregistrés */}
+        {Object.entries(personne.gouts).filter(([, v]) => v === -1).length > 0 && (
+          <>
+            <span className="label" style={{ marginTop: 6 }}>
+              Pas aimés
+            </span>
+            <div className="tags">
+              {Object.entries(personne.gouts)
+                .filter(([, v]) => v === -1)
+                .map(([cle]) => {
+                  const opt = GOUT_OPTIONS.find((o) => o.cle === cle)
+                  const nom = opt ? opt.label : cle.startsWith('prod:') ? produit(cle.slice(5))?.nom ?? cle : cle.slice(4)
+                  return (
+                    <button
+                      key={cle}
+                      className="chip pasaime actif"
+                      onClick={() => setGout(personne.id, cle, -1)}
+                      title="Cliquer pour enlever"
+                    >
+                      👎 {nom} ✕
+                    </button>
+                  )
+                })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Recettes aimées */}
@@ -134,6 +214,8 @@ export function Profil() {
       <p className="sous-titre" style={{ textAlign: 'center', margin: 0 }}>
         Toutes tes données restent sur cet appareil. 🔒
       </p>
+
+      {calc && <CalculateurKcal personne={personne} onClose={() => setCalc(false)} />}
     </div>
   )
 }

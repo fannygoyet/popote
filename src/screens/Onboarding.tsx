@@ -3,25 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { Mascotte } from '../components/Mascotte'
 import type { Personne } from '../store/types'
+import { GOUT_OPTIONS as OPTIONS } from '../store/gouts'
 
 const EMOJIS = ['👩', '👧', '👦', '🧑', '👨', '👵', '👴', '🧒', '👶', '🐱']
-
-// Options du questionnaire : tags + quelques produits clivants. Jamais codé en dur :
-// chaque personne répond pour elle-même.
-const OPTIONS: { cle: string; label: string }[] = [
-  { cle: 'tag:réconfort', label: 'Plats réconfort' },
-  { cle: 'tag:rapide', label: 'Vite fait' },
-  { cle: 'tag:végé', label: 'Végétarien' },
-  { cle: 'tag:équilibré', label: 'Équilibré' },
-  { cle: 'tag:sucré', label: 'Sucré' },
-  { cle: 'prod:poisson-pane', label: 'Poisson' },
-  { cle: 'prod:thon', label: 'Thon' },
-  { cle: 'prod:oeuf', label: 'Œufs' },
-  { cle: 'prod:fromage-rape', label: 'Fromage' },
-  { cle: 'prod:lardons', label: 'Lardons' },
-  { cle: 'prod:salade', label: 'Salade' },
-  { cle: 'prod:courgette', label: 'Courgettes' },
-]
 
 type Brouillon = Omit<Personne, 'id'>
 
@@ -112,24 +96,13 @@ export function Onboarding() {
                 value={g.nom}
                 onChange={(e) => majGen(i, { nom: e.target.value })}
               />
-              <div className="ligne">
-                <input
-                  className="champ"
-                  type="number"
-                  placeholder="Âge (optionnel)"
-                  value={g.age ?? ''}
-                  onChange={(e) => majGen(i, { age: e.target.value ? +e.target.value : undefined })}
-                />
-                <input
-                  className="champ"
-                  type="number"
-                  placeholder="Objectif kcal/j"
-                  value={g.objectifKcal ?? ''}
-                  onChange={(e) =>
-                    majGen(i, { objectifKcal: e.target.value ? +e.target.value : undefined })
-                  }
-                />
-              </div>
+              <input
+                className="champ"
+                type="number"
+                placeholder="Âge (optionnel)"
+                value={g.age ?? ''}
+                onChange={(e) => majGen(i, { age: e.target.value ? +e.target.value : undefined })}
+              />
               {gens.length > 1 && (
                 <button
                   className="btn fantome petit"
@@ -189,7 +162,9 @@ export function Onboarding() {
               const v = gens[actif]?.gouts[o.cle]
               return (
                 <div className="carte ligne espace" key={o.cle} style={{ padding: '12px 16px' }}>
-                  <span style={{ fontWeight: 700 }}>{o.label}</span>
+                  <span style={{ fontWeight: 700 }}>
+                    {o.emoji} {o.label}
+                  </span>
                   <div className="ligne" style={{ gap: 6 }}>
                     <button
                       className={'chip aime' + (v === 1 ? ' actif' : '')}

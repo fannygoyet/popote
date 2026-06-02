@@ -4,6 +4,7 @@ import type {
   AvisRecette,
   CourseItem,
   Ingredient,
+  Moment,
   Personne,
   Produit,
   Recette,
@@ -76,13 +77,21 @@ interface Ctx {
   // stock
   setStock: (produitId: string, quantite: number, opts?: Partial<StockItem>) => void
   ajusterStock: (produitId: string, delta: number) => void
+  // goûts
+  setGout: (personneId: string, cle: string, v: -1 | 0 | 1) => void
   // avis
   noter: (recetteId: string, personneId: string, note: -1 | 0 | 1, etoiles?: number) => void
   avisPour: (recetteId: string, personneId: string) => AvisRecette | undefined
   // recettes
   scoreRecette: (r: Recette, pour: string[]) => number
   faisabilite: (r: Recette) => { ok: boolean; manquants: Ingredient[] }
-  cuisiner: (recetteId: string, portions: number, pour: string[]) => void
+  // valide une recette cuisinée : déduit du stock les quantités explicitement choisies
+  confirmerRecette: (
+    recetteId: string,
+    portions: number,
+    pour: string[],
+    deductions: { produitId: string; quantite: number }[],
+  ) => void
   // courses
   ajouterAuxCourses: (items: Ingredient[]) => void
   toggleCourse: (produitId: string) => void
@@ -93,6 +102,8 @@ interface Ctx {
   retirerPlanning: (id: string) => void
   // journal
   loggerRepas: (recetteId: string, personneId: string, portions: number, date?: string) => void
+  loggerLibre: (e: { libelle: string; kcal: number; personneId: string; moment?: Moment; date?: string }) => void
+  supprimerRepas: (id: string) => void
   kcalDuJour: (personneId: string, date?: string) => number
 }
 
@@ -164,6 +175,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return d
     })
 
+  const setGout: Ctx['setGout'] = (personneId, cle, v) =>
+    set((d) => ({
+      ...d,
+      personnes: d.personnes.map((p) => {
+        if (p.id !== personneId) return p
+        const gouts = { ...p.gouts }
+        if (gouts[cle] === v) delete gouts[cle]
+        else gouts[cle] = v
+        return { ...p, gouts }
+      }),
+    }))
+
   const avisPour: Ctx['avisPour'] = (recetteId, personneId) =>
     data.avis.find((a) => a.recetteId === recetteId && a.personneId === personneId)
 
@@ -218,23 +241,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return score
   }
 
-  const cuisiner: Ctx['cuisiner'] = (recetteId, portions, pour) =>
+  const confirmerRecette: Ctx['confirmerRecette'] = (recetteId, portions, pour, deductions) =>
     set((d) => {
       const r = d.recettes.find((x) => x.id === recetteId)
       if (!r) return d
-      // décrémente le stock d'un cran par ingrédient utilisé (inventaire auto-entretenu)
+      // déduit du stock UNIQUEMENT ce qui a été confirmé (quantités ajustées par l'utilisateur)
       let stock = d.stock
-      for (const ing of r.ingredients) {
-        const s = stock.find((x) => x.produitId === ing.produitId)
+      for (const ded of deductions) {
+        if (ded.quantite <= 0) continue
+        const s = stock.find((x) => x.produitId === ded.produitId)
         if (s) {
-          const q = s.quantite - 1
+          const q = s.quantite - ded.quantite
           stock =
             q <= 0
-              ? stock.filter((x) => x.produitId !== ing.produitId)
-              : stock.map((x) => (x.produitId === ing.produitId ? { ...x, quantite: q, majLe: Date.now() } : x))
+              ? stock.filter((x) => x.produitId !== ded.produitId)
+              : stock.map((x) => (x.produitId === ded.produitId ? { ...x, quantite: q, majLe: Date.now() } : x))
         }
       }
-      // journalise pour les calories
+      // journalise pour les calories (réparti entre les convives)
       const date = aujourdhui()
       const logs: RepasMange[] = pour.map((pid) => ({
         id: uid(),
@@ -318,11 +342,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ],
     }))
 
+  const loggerLibre: Ctx['loggerLibre'] = (e) =>
+    set((d) => ({
+      ...d,
+      journal: [
+        ...d.journal,
+        {
+          id: uid(),
+          date: e.date ?? aujourdhui(),
+          libelle: e.libelle,
+          kcalManuel: e.kcal,
+          moment: e.moment,
+          personneId: e.personneId,
+          portions: 1,
+          majLe: Date.now(),
+        },
+      ],
+    }))
+
+  const supprimerRepas: Ctx['supprimerRepas'] = (id) =>
+    set((d) => ({ ...d, journal: d.journal.filter((j) => j.id !== id) }))
+
   const kcalDuJour: Ctx['kcalDuJour'] = (personneId, date) => {
     const jour = date ?? aujourdhui()
     return data.journal
       .filter((j) => j.personneId === personneId && j.date === jour)
       .reduce((tot, j) => {
+        if (j.kcalManuel != null) return tot + j.kcalManuel
         const r = data.recettes.find((x) => x.id === j.recetteId)
         return tot + (r ? r.kcalPortion * j.portions : 0)
       }, 0)
@@ -343,11 +389,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     majPersonne,
     setStock,
     ajusterStock,
+    setGout,
     noter,
     avisPour,
     scoreRecette,
     faisabilite,
-    cuisiner,
+    confirmerRecette,
     ajouterAuxCourses,
     toggleCourse,
     majQuantiteCourse,
@@ -355,6 +402,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     planifier,
     retirerPlanning,
     loggerRepas,
+    loggerLibre,
+    supprimerRepas,
     kcalDuJour,
   }
 
