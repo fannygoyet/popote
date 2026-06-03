@@ -77,6 +77,7 @@ export const PRODUITS_SEED: Produit[] = [
   // --- ingrédients ajoutés d'après l'inventaire réel ---
   p('quinoa', 'Quinoa', 'epicerie', 'packaged', 350),
   p('lait-coco', 'Lait de coco', 'epicerie', 'packaged', 200),
+  p('creme-coco', 'Crème de coco', 'epicerie', 'packaged', 230),
   p('epinards', 'Épinards', 'fruits-legumes', 'frais', 25, true),
   p('framboise', 'Framboises', 'fruits-legumes', 'frais', 50, true),
   p('peche', 'Pêches', 'fruits-legumes', 'frais', 40, true),
@@ -111,8 +112,9 @@ export const SYNONYMES: Record<string, string[]> = {
   riz: ['riso', 'basmati', 'risotto'],
   parmesan: ['grana', 'padano', 'parmigiano', 'pecorino'],
   mozzarella: ['bufala', 'burrata'],
-  'bouillon-volaille': ['volaille', 'poule'],
-  'bouillon-boeuf': ['boeuf'],
+  // « volaille / poule » = poulet (PAS le bouillon : la variante de bouillon est
+  // choisie par désambiguïsation contextuelle dans matcherProduit).
+  poulet: ['volaille', 'poule'],
 }
 
 // Produit d'assaisonnement / condiment : pas un ingrédient principal de recette,

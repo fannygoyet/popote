@@ -48,6 +48,20 @@ for (const [concept, syns] of Object.entries(SYNONYMES)) {
 export function matcherProduit(nomIng: string, produits: Produit[]): string | null {
   const it = motsCles(nomIng)
   if (!it.length) return null
+  const has = (w: string) => it.includes(w)
+  const pick = (id: string) => (produits.some((p) => p.id === id) ? id : null)
+  // désambiguïsation par qualificatif (AVANT les synonymes) :
+  // « bouillon/kub/maggi/fond + bœuf|viande / volaille|poule|poulet / légume »
+  if (has('bouillon') || has('kub') || has('maggi') || has('fond')) {
+    if (has('boeuf') || has('viande') || has('bovin')) { const r = pick('bouillon-boeuf'); if (r) return r }
+    if (has('volaille') || has('poule') || has('poulet')) { const r = pick('bouillon-volaille'); if (r) return r }
+    if (has('legume')) { const r = pick('bouillon-legumes'); if (r) return r }
+  }
+  // « lait / crème de coco » ne doit pas tomber sur le lait / la crème générique
+  if (has('coco')) {
+    if (has('creme')) { const r = pick('creme-coco'); if (r) return r }
+    if (has('lait')) { const r = pick('lait-coco'); if (r) return r }
+  }
   // synonyme connu (spaghetti -> pâtes, couscous -> semoule…) : prioritaire
   for (const w of it) {
     const c = SYN_REV[w]

@@ -69,9 +69,20 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
           </div>
         )}
 
-        <button className="btn fantome bloc petit" onClick={() => { setSansConcept(produit.id, true); onClose() }}>
-          🙅 Laisser tel quel (pas un ingrédient de recette)
-        </button>
+        {produit.sansConcept ? (
+          <div className="carte pile" style={{ background: 'var(--peche-clair)', gap: 8 }}>
+            <span style={{ color: '#b45a3c' }}>
+              Tu l'avais mis de côté (« pas un ingrédient »). Tu veux le reconnaître finalement ?
+            </span>
+            <button className="btn bloc petit" onClick={() => { setSansConcept(produit.id, false); onClose() }}>
+              ↩️ Oui, c'est bien un ingrédient
+            </button>
+          </div>
+        ) : (
+          <button className="btn fantome bloc petit" onClick={() => { setSansConcept(produit.id, true); onClose() }}>
+            🙅 Laisser tel quel (pas un ingrédient de recette)
+          </button>
+        )}
 
         <input className="champ" autoFocus placeholder="🔍 chercher ou nommer un ingrédient…" value={q} onChange={(e) => setQ(e.target.value)} />
 

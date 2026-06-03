@@ -308,7 +308,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...d,
       produits: d.produits.map((p) =>
         p.id === produitId
-          ? { ...p, canonId: canonId ?? undefined, canonManuel: canonId ? true : undefined }
+          ? { ...p, canonId: canonId ?? undefined, canonManuel: canonId ? true : undefined, sansConcept: canonId ? false : p.sansConcept }
           : p,
       ),
     }))

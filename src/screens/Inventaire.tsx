@@ -36,7 +36,10 @@ export function Inventaire() {
   const [recherche, setRecherche] = useState('')
   const [recon, setRecon] = useState<Produit[] | null>(null) // produits non scannés en mode complet
   const [aRetirer, setARetirer] = useState<Set<string>>(new Set())
+  const [oublisEnAttente, setOublisEnAttente] = useState<Produit[]>([]) // recon à montrer après le tri
+  const [ranger, setRanger] = useState<string[] | null>(null) // nouveaux produits à ranger sous un nom connu
   const scannes = useRef<Set<string>>(new Set()) // produits vus pendant la session de scan
+  const nouveaux = useRef<Set<string>>(new Set()) // produits JAMAIS vus avant, créés pendant ce scan
   const [rechercheStock, setRechercheStock] = useState('')
   const [groupe, setGroupe] = useState<'lieu' | 'categorie' | 'reconnaitre'>('lieu')
   const [cuisinerProd, setCuisinerProd] = useState<Produit | null>(null)
@@ -75,14 +78,16 @@ export function Inventaire() {
     return (
       <div className="carte ligne espace" key={s.produitId} style={{ padding: '10px 12px 10px 16px', gap: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700 }}>{p?.nom ?? s.produitId}</div>
+          {/* titre = nom générique quand on l'a reconnu ; le nom commercial passe en dessous, discret */}
+          <div style={{ fontWeight: 700 }}>{(p?.canonId && produit(p.canonId)?.nom) || p?.nom || s.produitId}</div>
           {p?.canonId ? (
             <button
-              className="tag"
-              style={{ background: 'var(--menthe-clair)', color: '#2c6b53', marginTop: 2 }}
+              className="sous-titre"
+              style={{ fontSize: 12, color: 'var(--texte-doux)', marginTop: 1, textAlign: 'left' }}
+              title="Corriger ce que c'est"
               onClick={() => setConceptProd(p)}
             >
-              = {produit(p.canonId)?.nom ?? p.canonId}
+              {p.nom} ✎
             </button>
           ) : aReconnaitre(p) ? (
             <button
@@ -91,6 +96,15 @@ export function Inventaire() {
               onClick={() => p && setConceptProd(p)}
             >
               🏷️ à reconnaître
+            </button>
+          ) : estBrut(p) && p?.sansConcept ? (
+            <button
+              className="sous-titre"
+              style={{ fontSize: 12, color: 'var(--texte-doux)', marginTop: 1, textAlign: 'left' }}
+              title="Finalement, c'est un ingrédient ?"
+              onClick={() => p && setConceptProd(p)}
+            >
+              tel quel ✎
             </button>
           ) : null}
         </div>
@@ -159,6 +173,7 @@ export function Inventaire() {
     const trouve = await chercherProduitParCodeBarres(code)
     if (trouve) {
       scannes.current.add(trouve.id)
+      nouveaux.current.add(trouve.id) // jamais vu -> à ranger en fin de scan
       upsertProduit(trouve)
       setStock(trouve.id, 1)
       return trouve.nom
@@ -168,6 +183,7 @@ export function Inventaire() {
 
   function ouvrirScan(m: 'courses' | 'complet') {
     scannes.current = new Set()
+    nouveaux.current = new Set()
     setMode(m)
     setScan(true)
   }
@@ -176,17 +192,34 @@ export function Inventaire() {
   // en stock mais n'a pas été scanné -> « tu n'aurais pas oublié… ? »
   function fermerScan() {
     setScan(false)
-    if (mode === 'complet') {
-      const oublis = data.stock
-        .filter((s) => s.quantite > 0 && !scannes.current.has(s.produitId))
-        .map((s) => produit(s.produitId))
-        .filter(Boolean) as Produit[]
-      if (oublis.length) {
-        setARetirer(new Set())
-        setRecon(oublis)
-      } else {
-        setMsg('Inventaire à jour ✓')
-      }
+    // produits jamais vus avant ce scan -> on propose de les ranger sous un nom connu
+    const news = [...nouveaux.current]
+    // en inventaire complet : ce qui était en stock mais pas re-scanné
+    const oublis =
+      mode === 'complet'
+        ? ((data.stock
+            .filter((s) => s.quantite > 0 && !scannes.current.has(s.produitId))
+            .map((s) => produit(s.produitId))
+            .filter(Boolean) as Produit[]))
+        : []
+    setOublisEnAttente(oublis)
+    if (news.length) {
+      setRanger(news) // le tri d'abord ; la réconciliation suivra à la confirmation
+    } else if (oublis.length) {
+      setARetirer(new Set())
+      setRecon(oublis)
+    } else if (mode === 'complet') {
+      setMsg('Inventaire à jour ✓')
+    }
+  }
+
+  // fin du tri des nouveaux produits -> enchaîne sur la réconciliation si besoin
+  function finRanger() {
+    setRanger(null)
+    if (oublisEnAttente.length) {
+      setARetirer(new Set())
+      setRecon(oublisEnAttente)
+      setOublisEnAttente([])
     }
   }
 
@@ -332,6 +365,57 @@ export function Inventaire() {
             <textarea className="champ" style={{ minHeight: 220, resize: 'vertical', fontSize: 13 }} readOnly value={exportTxt} onFocus={(e) => e.currentTarget.select()} />
             <button className="btn bloc" onClick={() => { navigator.clipboard?.writeText(exportTxt); setMsg('Copié ✓') }}>
               📋 Copier
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tri des nouveaux produits : les ranger sous un nom que la base connaît */}
+      {ranger && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(74,68,88,.35)', zIndex: 46, display: 'flex', alignItems: 'flex-end' }}
+          onClick={finRanger}
+        >
+          <div
+            className="pile"
+            style={{ background: 'var(--lilas-fond)', width: '100%', maxWidth: 480, margin: '0 auto', borderRadius: '30px 30px 0 0', padding: 16, maxHeight: '85vh', overflowY: 'auto', gap: 10 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Je range tes nouveautés 🗂️</h3>
+            <p className="sous-titre" style={{ margin: 0 }}>
+              {ranger.length} produit(s) jamais vus. Le nom commercial ne nous intéresse pas : touche
+              chaque produit pour le ranger sous un nom connu (ou en créer un si c'est un nouvel achat).
+            </p>
+            {ranger.map((id) => {
+              const p = produit(id)
+              if (!p) return null
+              const concept = p.canonId ? produit(p.canonId) : undefined
+              return (
+                <button
+                  key={id}
+                  className="carte ligne espace"
+                  style={{ padding: '12px 16px', textAlign: 'left', gap: 8 }}
+                  onClick={() => setConceptProd(p)}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <strong style={{ display: 'block' }}>{concept?.nom ?? p.nom}</strong>
+                    <span className="sous-titre" style={{ fontSize: 12, display: 'block' }}>{p.nom}</span>
+                  </span>
+                  <span
+                    className="tag"
+                    style={
+                      concept
+                        ? { background: 'var(--menthe)', color: '#2c6b53', flexShrink: 0 }
+                        : { background: 'var(--peche-clair)', color: '#b45a3c', flexShrink: 0 }
+                    }
+                  >
+                    {concept ? `= ${concept.nom} ✎` : '🏷️ dis-moi'}
+                  </span>
+                </button>
+              )
+            })}
+            <button className="btn bloc" onClick={finRanger}>
+              C'est rangé ✓
             </button>
           </div>
         </div>
