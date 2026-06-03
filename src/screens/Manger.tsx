@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { aujourdhui } from '../store/util'
 import { Mascotte } from '../components/Mascotte'
+import { PourQui } from '../components/PourQui'
 
 const PRESETS = [
   { libelle: 'Café / thé', kcal: 5 },
@@ -18,7 +19,10 @@ const PRESETS = [
 export function Manger() {
   const { data, loggerRepas, loggerLibre, supprimerRepas } = useStore()
   const nav = useNavigate()
-  const [qui, setQui] = useState<string[]>(data.personnes[0] ? [data.personnes[0].id] : [])
+  const [qui, setQui] = useState<string[]>(() => {
+    const f = data.personnes.filter((p) => p.foyer !== false).map((p) => p.id)
+    return f.length ? f : data.personnes[0] ? [data.personnes[0].id] : []
+  })
   const [onglet, setOnglet] = useState<'recette' | 'libre'>('recette')
   const [q, setQ] = useState('')
   const [libelle, setLibelle] = useState('')
@@ -63,16 +67,7 @@ export function Manger() {
       </div>
 
       {data.personnes.length > 1 && (
-        <div>
-          <span className="label">Pour qui ?</span>
-          <div className="tags">
-            {data.personnes.map((p) => (
-              <button key={p.id} className={'chip' + (qui.includes(p.id) ? ' actif' : '')} onClick={() => toggleQui(p.id)}>
-                {p.emoji} {p.nom}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PourQui personnes={data.personnes} pour={qui} onToggle={toggleQui} />
       )}
 
       {flash && (

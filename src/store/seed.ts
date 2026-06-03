@@ -88,7 +88,34 @@ export const PRODUITS_SEED: Produit[] = [
   p('lasagnes', 'Lasagnes', 'epicerie', 'packaged', 360),
   p('nuggets', 'Nuggets de poulet', 'surgele', 'packaged', 250),
   p('haricots-blancs', 'Haricots blancs', 'epicerie', 'packaged', 140),
+  p('cancoillotte', 'Cancoillotte', 'cremerie', 'packaged', 130, true),
+  p('bouillon-legumes', 'Bouillon de légumes', 'epicerie', 'packaged', 15),
+  p('bouillon-boeuf', 'Bouillon de bœuf', 'epicerie', 'packaged', 20),
+  p('bouillon-volaille', 'Bouillon de volaille', 'epicerie', 'packaged', 20),
 ]
+
+// Synonymes -> concept générique (pour reconnaître spaghetti = pâtes, couscous =
+// semoule, grana = parmesan…). Le produit garde son nom ; c'est juste pour les recettes.
+export const SYNONYMES: Record<string, string[]> = {
+  pates: [
+    'spaghetti', 'spaghettis', 'fusilli', 'penne', 'tagliatelle', 'macaroni', 'vermicelle', 'vermicelles',
+    'coquillette', 'coquillettes', 'farfalle', 'rigatoni', 'linguine', 'tortellini', 'ravioli', 'nouille', 'gnocchi',
+  ],
+  semoule: ['couscous'],
+  riz: ['riso', 'basmati', 'risotto'],
+  parmesan: ['grana', 'padano', 'parmigiano', 'pecorino'],
+  mozzarella: ['bufala', 'burrata'],
+  'bouillon-volaille': ['volaille', 'poule'],
+  'bouillon-boeuf': ['boeuf'],
+}
+
+// Produit d'assaisonnement / condiment : pas un ingrédient principal de recette,
+// on ne le réclame pas dans « à reconnaître ».
+export function estCondiment(p: Produit): boolean {
+  return /moutarde|vinaigr|\bsauce\b|andalouse|ketchup|\bmayo|tabasco|pulco|sirop|\bsel\b|poivre|paprika|curcuma|cumin|cannelle|muscade|[ée]pices?|\bcurry\b|colombo|massal|garam|origan|basilic|persil|ciboulette|herbes?|laurier|romarin|thym|estragon|coriandre|aneth|menthe|graines?|levure|ar[ôo]me|colorant|bouillon|\bkub\b|maggi|fond de|gomasio|sucre glace|sucre vanill|vanill|cassonade|ma[iï]zena|f[ée]cule|bicarbonate|g[ée]latine|agar|harissa|soja|worcester|concentr[ée]/i.test(
+    p.nom,
+  )
+}
 
 // Substituts possibles par produit : permet de remplacer un ingrédient qu'on
 // n'aime pas par un autre du même rôle (ex. Ezio n'aime pas l'oignon -> échalote).
@@ -1325,5 +1352,71 @@ export const RECETTES_SEED: Recette[] = [
     proteine: 3,
     legume: 1,
     feculent: 0,
+  },
+
+  // ===== Cancoillotte (sur demande !) =====
+  {
+    id: 'patate-cancoillotte',
+    nom: 'Pommes de terre à la cancoillotte',
+    emoji: '🥔',
+    tempsMin: 30,
+    portions: 2,
+    difficulte: 1,
+    moments: ['diner'],
+    tags: ['réconfort'],
+    ingredients: [
+      { produitId: 'pomme-de-terre', quantite: 500, unite: 'g' },
+      { produitId: 'cancoillotte', quantite: 200, unite: 'g' },
+      { produitId: 'jambon', quantite: 100, unite: 'g', optionnel: true },
+    ],
+    etapes: [
+      'Cuire les pommes de terre à l’eau (ou vapeur) 20 min.',
+      'Faire tiédir la cancoillotte.',
+      'Napper les pommes de terre de cancoillotte (avec le jambon).',
+    ],
+    kcalPortion: 380,
+    proteine: 1,
+    legume: 0,
+    feculent: 2,
+  },
+  {
+    id: 'pates-cancoillotte',
+    nom: 'Pâtes à la cancoillotte',
+    emoji: '🧀',
+    tempsMin: 15,
+    portions: 2,
+    difficulte: 1,
+    moments: ['dejeuner', 'diner'],
+    tags: ['rapide', 'réconfort', 'enfant'],
+    ingredients: [
+      { produitId: 'pates', quantite: 200, unite: 'g' },
+      { produitId: 'cancoillotte', quantite: 150, unite: 'g' },
+      { produitId: 'jambon', quantite: 80, unite: 'g', optionnel: true },
+    ],
+    etapes: ['Cuire les pâtes.', 'Faire tiédir la cancoillotte.', 'Mélanger le tout.'],
+    kcalPortion: 520,
+    proteine: 1,
+    legume: 0,
+    feculent: 3,
+  },
+  {
+    id: 'tartine-cancoillotte',
+    nom: 'Tartine chaude à la cancoillotte',
+    emoji: '🥪',
+    tempsMin: 10,
+    portions: 1,
+    difficulte: 1,
+    moments: ['dejeuner', 'diner', 'gouter'],
+    tags: ['rapide', 'réconfort'],
+    ingredients: [
+      { produitId: 'pain', quantite: 2, unite: 'piece' },
+      { produitId: 'cancoillotte', quantite: 80, unite: 'g' },
+      { produitId: 'jambon', quantite: 1, unite: 'piece', optionnel: true },
+    ],
+    etapes: ['Tartiner le pain de cancoillotte.', 'Ajouter le jambon.', 'Passer au four/grille 5 min.'],
+    kcalPortion: 320,
+    proteine: 1,
+    legume: 0,
+    feculent: 2,
   },
 ]

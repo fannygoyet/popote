@@ -6,7 +6,7 @@ import type { Produit } from '../store/types'
 // Permet d'associer un article (scanné/manuel) à un ingrédient générique connu
 // des recettes -> il devient utilisable dans les propositions.
 export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose: () => void }) {
-  const { setCanon, produit: getProduit } = useStore()
+  const { setCanon, setSansConcept, produit: getProduit } = useStore()
   const [q, setQ] = useState('')
 
   const concepts = useMemo(
@@ -48,6 +48,16 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
             </button>
           </div>
         )}
+
+        <button
+          className="btn fantome bloc petit"
+          onClick={() => {
+            setSansConcept(produit.id, true)
+            onClose()
+          }}
+        >
+          🙅 Laisser tel quel (pas un ingrédient de recette)
+        </button>
 
         <input className="champ" autoFocus placeholder="🔍 saumon, courgette, riz…" value={q} onChange={(e) => setQ(e.target.value)} />
         {concepts.map((c) => (

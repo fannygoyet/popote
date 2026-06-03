@@ -86,7 +86,11 @@ export function Enfant() {
         <button
           className="btn bloc"
           style={{ fontSize: 18, padding: '18px' }}
-          onClick={() => nav(`/recettes/${choisie.id}`, { state: { pour: data.personnes.map((p) => p.id) } })}
+          onClick={() =>
+            nav(`/recettes/${choisie.id}`, {
+              state: { pour: data.personnes.filter((p) => p.foyer !== false).map((p) => p.id) },
+            })
+          }
         >
           👩‍🍳 On cuisine !
         </button>

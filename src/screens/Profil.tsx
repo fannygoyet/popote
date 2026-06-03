@@ -43,6 +43,7 @@ export function Profil() {
   const [ajout, setAjout] = useState(false)
   const [nNom, setNNom] = useState('')
   const [nEmoji, setNEmoji] = useState('👦')
+  const [nFoyer, setNFoyer] = useState(true)
   const [nAge, setNAge] = useState<number | ''>('')
   const [nPart, setNPart] = useState(1)
   const [editProfil, setEditProfil] = useState(false)
@@ -138,6 +139,14 @@ export function Profil() {
                 {e}
               </button>
             ))}
+            <input
+              className="champ"
+              value={nEmoji}
+              onChange={(e) => setNEmoji(e.target.value.slice(0, 2) || '👦')}
+              style={{ width: 96, textAlign: 'center', padding: '6px 8px' }}
+              placeholder="emoji"
+              aria-label="emoji personnalisé"
+            />
           </div>
           <input className="champ" placeholder="Prénom (ex. ton fils)" value={nNom} onChange={(e) => setNNom(e.target.value)} />
           <input
@@ -156,6 +165,14 @@ export function Profil() {
             <span className="label">Appétit (pour la taille des portions / calories)</span>
             <AppetitChips value={nPart} onChange={setNPart} />
           </div>
+          <div className="tags">
+            <button className={'chip' + (nFoyer ? ' actif' : '')} onClick={() => setNFoyer(true)}>
+              🏠 Vit à la maison
+            </button>
+            <button className={'chip' + (!nFoyer ? ' actif' : '')} onClick={() => setNFoyer(false)}>
+              👋 Invité·e
+            </button>
+          </div>
           <button
             className="btn bloc"
             disabled={!nNom.trim()}
@@ -166,12 +183,14 @@ export function Profil() {
                 gouts: {},
                 age: nAge === '' ? undefined : nAge,
                 part: nPart,
+                foyer: nFoyer,
               })
               setActif(data.personnes.length) // sélectionne le nouveau
               setNNom('')
               setNEmoji('👦')
               setNAge('')
               setNPart(1)
+              setNFoyer(true)
               setAjout(false)
             }}
           >
@@ -201,12 +220,34 @@ export function Profil() {
                   {e}
                 </button>
               ))}
+              <input
+                className="champ"
+                value={personne.emoji}
+                onChange={(e) => majPersonne(personne.id, { emoji: e.target.value.slice(0, 2) || personne.emoji })}
+                style={{ width: 96, textAlign: 'center', padding: '6px 8px' }}
+                placeholder="emoji"
+                aria-label="emoji personnalisé"
+              />
             </div>
             <input
               className="champ"
               value={personne.nom}
               onChange={(e) => majPersonne(personne.id, { nom: e.target.value })}
             />
+            <div className="tags">
+              <button
+                className={'chip' + (personne.foyer !== false ? ' actif' : '')}
+                onClick={() => majPersonne(personne.id, { foyer: true })}
+              >
+                🏠 Vit à la maison
+              </button>
+              <button
+                className={'chip' + (personne.foyer === false ? ' actif' : '')}
+                onClick={() => majPersonne(personne.id, { foyer: false })}
+              >
+                👋 Invité·e
+              </button>
+            </div>
             <input
               className="champ"
               type="number"

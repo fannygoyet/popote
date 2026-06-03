@@ -1,4 +1,5 @@
 import type { Produit, Unite } from './types'
+import { SYNONYMES } from './seed'
 
 // --- Rapprochement intelligent d'un nom d'ingrédient avec le référentiel ---
 function norm(s: string): string {
@@ -33,10 +34,24 @@ function motsCles(s: string): string[] {
     .filter(Boolean)
 }
 
+// table inversée synonyme -> concept (normalisée comme les mots-clés)
+const SYN_REV: Record<string, string> = {}
+for (const [concept, syns] of Object.entries(SYNONYMES)) {
+  for (const syn of syns) {
+    const k = norm(syn).replace(/[^a-z0-9]/g, '').replace(/(s|x)$/, '')
+    if (k) SYN_REV[k] = concept
+  }
+}
+
 // trouve le meilleur produit existant pour un nom d'ingrédient (ou null)
 export function matcherProduit(nomIng: string, produits: Produit[]): string | null {
   const it = motsCles(nomIng)
   if (!it.length) return null
+  // synonyme connu (spaghetti -> pâtes, couscous -> semoule…) : prioritaire
+  for (const w of it) {
+    const c = SYN_REV[w]
+    if (c && produits.some((p) => p.id === c)) return c
+  }
   let best: string | null = null
   let bestScore = 0
   for (const p of produits) {

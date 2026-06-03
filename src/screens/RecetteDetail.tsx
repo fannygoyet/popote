@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { SUBSTITUTS } from '../store/seed'
 import { Mascotte } from '../components/Mascotte'
+import { PourQui } from '../components/PourQui'
 import type { Ingredient } from '../store/types'
 
 type LigneConfirm = { ing: Ingredient; eff: string; stockId: string; dispo: boolean; q: number }
@@ -18,8 +19,9 @@ export function RecetteDetail() {
   const loc = useLocation()
 
   const recette = data.recettes.find((r) => r.id === id)
+  const foyer = data.personnes.filter((p) => p.foyer !== false).map((p) => p.id)
   const [pour, setPour] = useState<string[]>(
-    (loc.state as { pour?: string[] })?.pour ?? data.personnes.map((p) => p.id),
+    (loc.state as { pour?: string[] })?.pour ?? (foyer.length ? foyer : data.personnes.map((p) => p.id)),
   )
   const [portions, setPortions] = useState(recette?.portions ?? 2)
   const [phase, setPhase] = useState<Phase>('config')
@@ -43,6 +45,9 @@ export function RecetteDetail() {
       .filter(Boolean) as LigneConfirm[]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recette, rempl, dedOverride, data.stock])
+
+  const togglePour = (id: string) =>
+    setPour((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]))
 
   if (!recette) return <div className="ecran vide">Recette introuvable.</div>
   const r = recette
@@ -119,22 +124,7 @@ export function RecetteDetail() {
             </div>
           </div>
 
-          <div>
-            <span className="label">Pour qui ?</span>
-            <div className="tags">
-              {data.personnes.map((p) => (
-                <button
-                  key={p.id}
-                  className={'chip' + (pour.includes(p.id) ? ' actif' : '')}
-                  onClick={() =>
-                    setPour((x) => (x.includes(p.id) ? x.filter((y) => y !== p.id) : [...x, p.id]))
-                  }
-                >
-                  {p.emoji} {p.nom}
-                </button>
-              ))}
-            </div>
-          </div>
+          <PourQui personnes={data.personnes} pour={pour} onToggle={togglePour} />
 
           <div className="carte pile" style={{ gap: 10 }}>
             <strong>Ingrédients</strong>
@@ -196,22 +186,7 @@ export function RecetteDetail() {
           <Mascotte texte="Avant de retirer ça de tes placards, on ajuste si besoin 👇" emoji="🧾" />
 
           {/* Pour qui (réajustable : ex. faire le plat juste pour ceux qui aiment) */}
-          <div>
-            <span className="label">Pour qui ?</span>
-            <div className="tags">
-              {data.personnes.map((p) => (
-                <button
-                  key={p.id}
-                  className={'chip' + (pour.includes(p.id) ? ' actif' : '')}
-                  onClick={() =>
-                    setPour((x) => (x.includes(p.id) ? x.filter((y) => y !== p.id) : [...x, p.id]))
-                  }
-                >
-                  {p.emoji} {p.nom}
-                </button>
-              ))}
-            </div>
-          </div>
+          <PourQui personnes={data.personnes} pour={pour} onToggle={togglePour} />
 
           {/* Conflits de goûts -> remplacer / retirer */}
           {r.ingredients

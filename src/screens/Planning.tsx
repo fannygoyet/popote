@@ -27,7 +27,8 @@ export function Planning() {
   const { data, scoreRecette, planifier, retirerPlanning, ajouterAuxCourses, faisabilite } = useStore()
   const nav = useNavigate()
   const jours = useMemo(() => prochainsJours(7), [])
-  const tous = data.personnes.map((p) => p.id)
+  const foyerIds = data.personnes.filter((p) => p.foyer !== false).map((p) => p.id)
+  const tous = foyerIds.length ? foyerIds : data.personnes.map((p) => p.id)
 
   const [equilibre, setEquilibre] = useState(60)
   const [picker, setPicker] = useState<string | null>(null) // date pour laquelle on choisit

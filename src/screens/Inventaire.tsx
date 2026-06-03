@@ -4,10 +4,12 @@ import { Scanner } from '../components/Scanner'
 import { QueCuisiner } from '../components/QueCuisiner'
 import { ConceptPicker } from '../components/ConceptPicker'
 import { chercherProduitParCodeBarres } from '../store/openfoodfacts'
-import { estComptable } from '../store/seed'
+import { estComptable, estCondiment } from '../store/seed'
 import type { Lieu, Produit, Rayon, StockItem } from '../store/types'
 
 const estBrut = (p?: Produit) => !!p && (p.id.startsWith('off-') || p.id.startsWith('perso-'))
+// produit à proposer dans « à reconnaître » : brut, sans concept, pas écarté, pas un condiment
+const aReconnaitre = (p?: Produit) => estBrut(p) && !p!.canonId && !p!.sansConcept && !estCondiment(p!)
 
 const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
   { cle: 'frigo', label: 'Frigo', ic: '🧊' },
@@ -41,10 +43,7 @@ export function Inventaire() {
   const [conceptProd, setConceptProd] = useState<Produit | null>(null)
   const [exportTxt, setExportTxt] = useState<string | null>(null)
 
-  const nbNonReconnus = data.stock.filter((s) => {
-    const p = produit(s.produitId)
-    return estBrut(p) && !p?.canonId
-  }).length
+  const nbNonReconnus = data.stock.filter((s) => aReconnaitre(produit(s.produitId))).length
 
   function exporterPlacard() {
     const out: string[] = [`MON PLACARD — ${data.stock.length} produits`]
@@ -77,24 +76,23 @@ export function Inventaire() {
       <div className="carte ligne espace" key={s.produitId} style={{ padding: '10px 12px 10px 16px', gap: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700 }}>{p?.nom ?? s.produitId}</div>
-          {estBrut(p) &&
-            (p?.canonId ? (
-              <button
-                className="tag"
-                style={{ background: 'var(--menthe-clair)', color: '#2c6b53', marginTop: 2 }}
-                onClick={() => p && setConceptProd(p)}
-              >
-                = {produit(p.canonId)?.nom ?? p.canonId}
-              </button>
-            ) : (
-              <button
-                className="tag"
-                style={{ background: 'var(--peche-clair)', color: '#b45a3c', marginTop: 2 }}
-                onClick={() => p && setConceptProd(p)}
-              >
-                🏷️ à reconnaître
-              </button>
-            ))}
+          {p?.canonId ? (
+            <button
+              className="tag"
+              style={{ background: 'var(--menthe-clair)', color: '#2c6b53', marginTop: 2 }}
+              onClick={() => setConceptProd(p)}
+            >
+              = {produit(p.canonId)?.nom ?? p.canonId}
+            </button>
+          ) : aReconnaitre(p) ? (
+            <button
+              className="tag"
+              style={{ background: 'var(--peche-clair)', color: '#b45a3c', marginTop: 2 }}
+              onClick={() => p && setConceptProd(p)}
+            >
+              🏷️ à reconnaître
+            </button>
+          ) : null}
         </div>
         <div className="ligne" style={{ gap: 6 }}>
           {comptable || s.quantite > 1 ? (
@@ -134,10 +132,7 @@ export function Inventaire() {
     const q = rechercheStock.toLowerCase().trim()
     const filtre = data.stock.filter((s) => (produit(s.produitId)?.nom ?? '').toLowerCase().includes(q))
     if (groupe === 'reconnaitre') {
-      const items = filtre.filter((s) => {
-        const p = produit(s.produitId)
-        return estBrut(p) && !p?.canonId
-      })
+      const items = filtre.filter((s) => aReconnaitre(produit(s.produitId)))
       return items.length ? [{ cle: 'reconnaitre', label: 'À reconnaître', ic: '🏷️', items }] : []
     }
     const defs = groupe === 'lieu' ? LIEUX : RAYONS

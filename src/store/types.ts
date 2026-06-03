@@ -22,6 +22,7 @@ export interface Produit {
   perissable: boolean // le frais se gâte vite -> influence l'inventaire
   canonId?: string // concept générique rattaché (ex. « Pavés de saumon » -> 'saumon')
                    // -> permet aux articles scannés/manuels de débloquer les recettes
+  sansConcept?: boolean // « laisser tel quel » : produit écarté de « à reconnaître »
 }
 
 // Ce que j'ai vraiment chez moi, ici et maintenant.
@@ -75,6 +76,7 @@ export interface Personne {
   // goûts : map produitId/tag -> note (-1 pas aimé, 0 moyen, 1 aimé)
   gouts: Record<string, -1 | 0 | 1>
   part?: number // appétit : part d'une portion adulte (0.5 enfant, 1 normal, 1.5 gros) — défaut 1
+  foyer?: boolean // vit à la maison (coché par défaut). false = invité·e (suggéré, pas coché)
   objectifKcal?: number // null/absent = pas de suivi calories pour cette personne
   // données pour (re)calculer l'objectif kcal
   sexe?: Sexe

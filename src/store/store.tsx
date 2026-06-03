@@ -84,6 +84,7 @@ interface Ctx {
   upsertProduit: (p: Produit) => void
   supprimerProduit: (id: string) => void
   setCanon: (produitId: string, canonId: string | null) => void
+  setSansConcept: (produitId: string, v: boolean) => void
   // personnes
   ajouterPersonne: (p: Omit<Personne, 'id'>) => string
   majPersonne: (id: string, maj: Partial<Personne>) => void
@@ -303,6 +304,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     set((d) => ({
       ...d,
       produits: d.produits.map((p) => (p.id === produitId ? { ...p, canonId: canonId ?? undefined } : p)),
+    }))
+
+  const setSansConcept: Ctx['setSansConcept'] = (produitId, v) =>
+    set((d) => ({
+      ...d,
+      produits: d.produits.map((p) => (p.id === produitId ? { ...p, sansConcept: v } : p)),
     }))
 
   const supprimerProduit: Ctx['supprimerProduit'] = (id) =>
@@ -625,6 +632,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     upsertProduit,
     supprimerProduit,
     setCanon,
+    setSansConcept,
     ajouterPersonne,
     majPersonne,
     supprimerPersonne,
