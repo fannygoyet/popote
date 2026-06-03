@@ -232,25 +232,36 @@ export function CreerRecette() {
       <div className="carte pile" style={{ gap: 10 }}>
         <strong>Ingrédients</strong>
         {ingredients.map((ing, i) => (
-          <div className="ligne" key={ing.produitId} style={{ gap: 8 }}>
-            <span style={{ flex: 1, fontWeight: 700 }}>{produit(ing.produitId)?.nom ?? ing.produitId}</span>
-            <input
-              className="champ"
-              type="number"
-              inputMode="numeric"
-              style={{ width: 70, padding: '8px 10px' }}
-              value={ing.quantite}
-              onChange={(e) => majIngredient(i, { quantite: +e.target.value })}
-            />
-            <select className="champ" style={{ width: 80, padding: '8px 10px' }} value={ing.unite} onChange={(e) => majIngredient(i, { unite: e.target.value as Unite })}>
-              {UNITES.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-            <button className="rond" style={{ width: 32, height: 32 }} onClick={() => setIngredients((x) => x.filter((_, idx) => idx !== i))}>
-              ✕
+          <div className="pile" key={ing.produitId} style={{ gap: 4 }}>
+            <div className="ligne" style={{ gap: 8 }}>
+              <span style={{ flex: 1, fontWeight: 700, opacity: ing.optionnel ? 0.6 : 1 }}>
+                {produit(ing.produitId)?.nom ?? ing.produitId}
+              </span>
+              <input
+                className="champ"
+                type="number"
+                inputMode="numeric"
+                style={{ width: 70, padding: '8px 10px' }}
+                value={ing.quantite}
+                onChange={(e) => majIngredient(i, { quantite: +e.target.value })}
+              />
+              <select className="champ" style={{ width: 80, padding: '8px 10px' }} value={ing.unite} onChange={(e) => majIngredient(i, { unite: e.target.value as Unite })}>
+                {UNITES.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+              <button className="rond" style={{ width: 32, height: 32 }} onClick={() => setIngredients((x) => x.filter((_, idx) => idx !== i))}>
+                ✕
+              </button>
+            </div>
+            <button
+              className={'chip' + (ing.optionnel ? ' actif' : '')}
+              style={{ alignSelf: 'flex-start', padding: '4px 12px', fontSize: 12 }}
+              onClick={() => majIngredient(i, { optionnel: !ing.optionnel })}
+            >
+              {ing.optionnel ? '☑️ Optionnel (pas obligatoire)' : '◻️ Marquer optionnel'}
             </button>
           </div>
         ))}

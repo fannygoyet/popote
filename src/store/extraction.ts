@@ -13,7 +13,7 @@ function norm(s: string): string {
 // mots à ignorer : articles, contenants, quantifieurs, qualificatifs
 const STOP = new Set([
   'un', 'une', 'des', 'de', 'du', 'd', 'la', 'le', 'les', 'l', 'au', 'aux', 'et', 'ou', 'a',
-  'pot', 'pots', 'sachet', 'sachets', 'boite', 'boites', 'bocal', 'brique', 'briques', 'paquet', 'paquets',
+  'pot', 'pots', 'sachet', 'sachets', 'boite', 'boites', 'bocal', 'brique', 'briques', 'paquet', 'paquets', 'bloc', 'blocs',
   'tranche', 'tranches', 'gousse', 'gousses', 'cuillere', 'cuilleres', 'cas', 'cac', 'cs', 'cc',
   'environ', 'gros', 'grosse', 'grosses', 'petit', 'petite', 'petits', 'petites', 'bio',
   'frais', 'fraiche', 'fraiches', 'liquide', 'entier', 'entiere', 'demi', 'quelques', 'beaucoup',
@@ -153,10 +153,18 @@ const UNITE_KW =
 function nettoyerLigne(l: string): string {
   return l
     .replace(/https?:\/\/\S+/g, '')
+    .replace(/voir les?\s*\d*\s*commentaires?.*$/i, '') // « …180Voir les 651 commentaires »
+    .replace(/view\s+all\s+\d*\s*comments?.*$/i, '')
     .replace(/#[^\s#]+/g, '')
     .replace(/@[^\s@]+/g, '')
     .replace(/^[\s\-•*·▪◦▢➡️👉🔸🔹✅☑️▶️–—]+/, '')
     .trim()
+}
+
+// marqueur d'étape numérotée : « 1 / », « 2) », « 3. », « 4 - »
+const STEP_MARK = /^\d{1,2}\s*[/).:°-]/
+function estEtape(l: string): boolean {
+  return STEP_MARK.test(l) || l.length > 45
 }
 
 function estIngredient(l: string): boolean {
@@ -171,7 +179,8 @@ export interface RecetteExtraite {
 
 export function analyserTexte(texte: string): RecetteExtraite {
   const lignes = texte
-    .split(/\r?\n|•|·|(?<=[.!?])\s+(?=[A-ZÀ-Ü])/)
+    // coupe aussi avant un marqueur d'étape «  2 / » même au milieu d'une ligne
+    .split(/\r?\n|•|·|(?<=[.!?])\s+(?=[A-ZÀ-Ü])|(?<=\S)\s+(?=\d{1,2}\s*[/)]\s)/)
     .map(nettoyerLigne)
     .filter((l) => l && !FILLER.test(l) && !/^[\d\W]{0,2}$/.test(l))
 
@@ -183,20 +192,23 @@ export function analyserTexte(texte: string): RecetteExtraite {
 
   const sansEntete = (l: string) =>
     l.replace(/^(ingr[ée]dients?|pr[ée]paration|[ée]tapes?|instructions|recette)\s*:?\s*/i, '').trim()
+  const sansNumero = (l: string) => l.replace(/^\d{1,2}\s*[/).:°-]\s*/, '').trim()
 
   if (idxIng >= 0) {
-    const fin = idxEt > idxIng ? idxEt : lignes.length
-    ingredients = lignes
-      .slice(idxIng, fin)
-      .map(sansEntete)
-      .filter(Boolean)
-    if (idxEt > idxIng) etapes = lignes.slice(idxEt).map(sansEntete).filter(Boolean)
+    // début des étapes : l'en-tête « préparation » si présent, sinon la 1re ligne
+    // qui ressemble à une étape (numérotée ou phrase longue) après les ingrédients
+    let debutEt = idxEt > idxIng ? idxEt : lignes.findIndex((l, i) => i > idxIng && estEtape(l))
+    if (debutEt <= idxIng) debutEt = -1
+    const fin = debutEt > idxIng ? debutEt : lignes.length
+    ingredients = lignes.slice(idxIng, fin).map(sansEntete).filter(Boolean)
+    if (debutEt > idxIng) etapes = lignes.slice(debutEt).map(sansEntete).map(sansNumero).filter(Boolean)
   }
 
   // pas d'en-têtes clairs (ou rien trouvé) -> on classe ligne par ligne
   if (ingredients.length === 0 && etapes.length === 0) {
     for (const l of lignes) {
-      if (estIngredient(l)) ingredients.push(l)
+      if (STEP_MARK.test(l)) etapes.push(sansNumero(l))
+      else if (estIngredient(l)) ingredients.push(l)
       else if (l.length > 18) etapes.push(l)
     }
   }
@@ -245,16 +257,22 @@ export function parseLigne(ligne: string): {
     s = s.slice(fu[0].length)
   }
 
-  const m = !quantiteDetectee
-    ? s.match(
-        /^(\d+[.,]?\d*)\s*(kg|g|ml|cl|l|c\.?\s?à\.?\s?s|càs|cas|cs|cuill?[èe]res?\s+à\s+soupe|c\.?\s?à\.?\s?c|càc|cac|cc|cuill?[èe]res?\s+à\s+caf[ée]|pinc[ée]es?|gousses?|tranches?|sachets?|bo[îi]tes?|œufs?|oeufs?)?\b/i,
-      )
-    : null
-  if (m) {
-    quantite = parseFloat(m[1].replace(',', '.'))
-    quantiteDetectee = true
-    const u = (m[2] || '').toLowerCase()
-    if (u) uniteDetectee = true
+  // 1) le nombre, même collé au mot suivant (« 8oeufs »)
+  if (!quantiteDetectee) {
+    const num = s.match(/^(\d+[.,]?\d*)/)
+    if (num) {
+      quantite = parseFloat(num[1].replace(',', '.'))
+      quantiteDetectee = true
+      s = s.slice(num[0].length).trim()
+    }
+  }
+  // 2) l'unité éventuelle juste après (sinon le mot est l'ingrédient, ex. « oeufs »)
+  const um = s.match(
+    /^(kg|g|ml|cl|l|c\.?\s?à\.?\s?s|càs|cas|cs|cuill?[èe]res?\s+à\s+soupe|c\.?\s?à\.?\s?c|càc|cac|cc|cuill?[èe]res?\s+à\s+caf[ée]|pinc[ée]es?|gousses?|tranches?|sachets?|bo[îi]tes?)\b/i,
+  )
+  if (um) {
+    const u = um[1].toLowerCase()
+    uniteDetectee = true
     if (u.startsWith('kg')) {
       unite = 'g'
       quantite *= 1000
@@ -269,9 +287,9 @@ export function parseLigne(ligne: string): {
     } else if (u.includes('soup') || u === 'càs' || u === 'cas' || u === 'cs' || /^c.?a.?s$/.test(u)) unite = 'cas'
     else if (u.includes('caf') || u === 'càc' || u === 'cac' || u === 'cc' || /^c.?a.?c$/.test(u)) unite = 'cac'
     else if (u.startsWith('pinc')) unite = 'pincee'
-    else if (u.startsWith('gousse') || u.startsWith('tranche') || u.startsWith('sachet') || u.startsWith('bo') || u.includes('uf'))
+    else if (u.startsWith('gousse') || u.startsWith('tranche') || u.startsWith('sachet') || u.startsWith('bo'))
       unite = 'piece'
-    s = s.slice(m[0].length)
+    s = s.slice(um[0].length).trim()
   }
   s = s.replace(/^\s*(de\s+|d['’]\s*|du\s+|des\s+)/i, '').trim()
   // pas de quantité chiffrée ? on déduit du contenant (« un pot de crème » = 20 cl)
