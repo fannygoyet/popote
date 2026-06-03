@@ -508,7 +508,6 @@ export function Inventaire() {
           onClick={() => setAjout(false)}
         >
           <div
-            className="pile"
             style={{
               background: 'var(--lilas-fond)',
               width: '100%',
@@ -516,17 +515,16 @@ export function Inventaire() {
               margin: '0 auto',
               borderRadius: '30px 30px 0 0',
               padding: 16,
-              maxHeight: '80vh',
-              overflowY: 'auto',
+              height: '72vh',
+              maxHeight: '88vh',
+              display: 'flex',
+              flexDirection: 'column',
               gap: 10,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* en-tête + recherche : restent collés en haut quand on fait défiler la liste */}
-            <div
-              className="pile"
-              style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--lilas-fond)', margin: '-16px -16px 0', padding: '16px 16px 10px', gap: 10 }}
-            >
+            {/* en-tête fixe : ne bouge pas, peu importe le nombre de résultats */}
+            <div className="pile" style={{ gap: 10, flexShrink: 0 }}>
               <div className="ligne espace">
                 <h3>Ajouter un produit</h3>
                 <button className="btn clair petit" onClick={() => setAjout(false)}>
@@ -546,10 +544,12 @@ export function Inventaire() {
                     ➕ Créer « {recherche.trim()} » (frais)
                   </button>
                 )}
+              <p className="sous-titre" style={{ margin: 0 }}>
+                Tape sur ce que tu as, ou crée-le s'il n'existe pas. Pas besoin de quantité. 🙂
+              </p>
             </div>
-            <p className="sous-titre" style={{ margin: 0 }}>
-              Tape sur ce que tu as, ou crée-le s'il n'existe pas. Pas besoin de quantité. 🙂
-            </p>
+            {/* seule la liste défile -> la barre de recherche ne saute plus */}
+            <div className="pile" style={{ gap: 10, flex: 1, overflowY: 'auto', margin: '0 -16px', padding: '2px 16px 0' }}>
             {resultats.map((p) => {
               const dedans = qte(p.id) > 0
               const perso = p.id.startsWith('perso-') || p.id.startsWith('off-')
@@ -616,6 +616,7 @@ export function Inventaire() {
                 </div>
               )
             })}
+            </div>
           </div>
         </div>
       )}
