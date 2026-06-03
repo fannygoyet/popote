@@ -22,6 +22,7 @@ export interface Produit {
   perissable: boolean // le frais se gâte vite -> influence l'inventaire
   canonId?: string // concept générique rattaché (ex. « Pavés de saumon » -> 'saumon')
                    // -> permet aux articles scannés/manuels de débloquer les recettes
+  canonManuel?: boolean // rattachement choisi à la main -> protégé du recalcul auto
   sansConcept?: boolean // « laisser tel quel » : produit écarté de « à reconnaître »
 }
 

@@ -44,7 +44,14 @@ export function ImportReel() {
     setChargement(false)
     if (t) {
       setTexte(t)
-      setMsg('✓ Texte récupéré ! Vérifie en dessous, puis crée la recette.')
+      const ex = analyserTexte(t)
+      if (ex.ingredients.length === 0) {
+        setMsg(
+          "⚠️ Cette vidéo n'a pas de recette écrite dans sa description (elle est sûrement seulement en images/voix). Aucune appli ne peut la deviner. Tape-la à la main ci-dessous si tu veux.",
+        )
+      } else {
+        setMsg('✓ Recette récupérée ! Vérifie en dessous, puis crée-la.')
+      }
     } else {
       setMsg("Je n'ai pas réussi à lire ce lien (Instagram bloque parfois). Copie-colle la description à la main ci-dessous.")
     }
@@ -65,6 +72,10 @@ export function ImportReel() {
 
   function creer() {
     const ex = analyserTexte(texte)
+    if (ex.ingredients.length === 0 && ex.etapes.length === 0) {
+      setMsg('Aucun ingrédient détecté. Complète la description ci-dessus, ou crée la recette à la main (Recettes → Créer).')
+      return
+    }
     const ingredients: Ingredient[] = ex.ingredients.map((l) => {
       const p = parseLigne(l)
       const produitId = trouverOuCreer(p.nom)

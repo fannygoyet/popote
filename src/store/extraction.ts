@@ -21,7 +21,8 @@ const STOP = new Set([
   'peu', 'morceau', 'morceaux', 'filet', 'filets', 'tasse', 'verre', 'verres', 'tranchee',
   'g', 'kg', 'ml', 'cl', 'l', 'pincee', 'pincees', 'belle', 'beau', 'bonne', 'bon',
   // mots de découpe : ne doivent pas piloter le rapprochement (« escalope de poulet » -> poulet)
-  'escalope', 'escalopes', 'pave', 'paves', 'steak', 'steaks', 'blanc', 'blancs',
+  // NB : on garde « blanc » significatif (haricots blancs, blanc d'œuf, vin blanc…)
+  'escalope', 'escalopes', 'pave', 'paves', 'steak', 'steaks',
   'darne', 'darnes', 'cuisse', 'cuisses', 'aiguillette', 'aiguillettes',
 ])
 
@@ -172,14 +173,32 @@ function nettoyerLigne(l: string): string {
     .replace(/view\s+all\s+\d*\s*comments?.*$/i, '')
     .replace(/#[^\s#]+/g, '')
     .replace(/@[^\s@]+/g, '')
-    .replace(/^[\s\-•*·▪◦▢➡️👉🔸🔹✅☑️▶️–—]+/, '')
+    .replace(/^[\s\-•*·▪◦▢➡️👉🔸🔹✅☑️▶️–—~≈►▸▹◾◽✨🌟🎀🍴🥄✔️→»]+/, '')
     .trim()
 }
 
-// marqueur d'étape numérotée : « 1 / », « 2) », « 3. », « 4 - »
-const STEP_MARK = /^\d{1,2}\s*[/).:°-]/
+// marqueur d'étape numérotée : « 1 / », « 2) », « 3. », « 4 - » (mais PAS « 1/2 »)
+const STEP_MARK = /^\d{1,2}\s*([).:°-]|\/(?=\s|$))/
+// sous-titre de section (« Pour la pâte : », « Farce : », « (Pour 4) »…) -> à ignorer
+function estSousTitre(l: string): boolean {
+  return (
+    (/^\(?\s*pour\b/i.test(l) && l.length < 40) ||
+    /^(garniture|sauce|p[âa]te|farce|montage|cuisson|d[ée]coration|gla[çc]age|topping|dressage|finition|assemblage)\s*:?\s*$/i.test(
+      l,
+    )
+  )
+}
+// ligne d'instruction (phrase longue, ou commence par un verbe d'action)
+function estInstruction(l: string): boolean {
+  return (
+    l.length > 45 ||
+    /^(j['’]ai|je |faire|cuire|m[ée]lange|ajout|verse|laisse|enfourn|pr[ée]chauff|d[ée]pose|sers?|servir|bat|coupe|[ée]pluche|incorpor|nappe|dispose|r[âa]pe|d[ée]gorge|p[ée]tri|fouette|remue|mixe|[ée]tale|reserve|r[ée]serve|saupoudre)/i.test(
+      l,
+    )
+  )
+}
 function estEtape(l: string): boolean {
-  return STEP_MARK.test(l) || l.length > 45
+  return STEP_MARK.test(l) || estInstruction(l)
 }
 
 function estIngredient(l: string): boolean {
@@ -210,21 +229,27 @@ export function analyserTexte(texte: string): RecetteExtraite {
   const sansNumero = (l: string) => l.replace(/^\d{1,2}\s*[/).:°-]\s*/, '').trim()
 
   if (idxIng >= 0) {
-    // début des étapes : l'en-tête « préparation » si présent, sinon la 1re ligne
-    // qui ressemble à une étape (numérotée ou phrase longue) après les ingrédients
-    let debutEt = idxEt > idxIng ? idxEt : lignes.findIndex((l, i) => i > idxIng && estEtape(l))
-    if (debutEt <= idxIng) debutEt = -1
-    const fin = debutEt > idxIng ? debutEt : lignes.length
-    ingredients = lignes.slice(idxIng, fin).map(sansEntete).filter(Boolean)
-    if (debutEt > idxIng) etapes = lignes.slice(debutEt).map(sansEntete).map(sansNumero).filter(Boolean)
+    // entre « Ingrédients » et « Préparation » (ou jusqu'à la fin) : on classe
+    // CHAQUE ligne (gère les sous-sections pâte/farce et les instructions intercalées)
+    const finIng = idxEt > idxIng ? idxEt : lignes.length
+    for (let i = idxIng + 1; i < finIng; i++) {
+      const l = sansEntete(lignes[i])
+      if (!l || estSousTitre(l)) continue
+      if (STEP_MARK.test(l)) etapes.push(sansNumero(l))
+      else if (estInstruction(l)) etapes.push(l)
+      else ingredients.push(l)
+    }
+    // après un en-tête « Préparation » explicite : tout est étape
+    if (idxEt > idxIng) etapes.push(...lignes.slice(idxEt).map(sansEntete).map(sansNumero).filter(Boolean))
   }
 
   // pas d'en-têtes clairs (ou rien trouvé) -> on classe ligne par ligne
   if (ingredients.length === 0 && etapes.length === 0) {
     for (const l of lignes) {
+      if (estSousTitre(l)) continue
       if (STEP_MARK.test(l)) etapes.push(sansNumero(l))
-      else if (estIngredient(l)) ingredients.push(l)
-      else if (l.length > 18) etapes.push(l)
+      else if (estInstruction(l)) etapes.push(l)
+      else if (estIngredient(l) || l.length <= 45) ingredients.push(l)
     }
   }
 

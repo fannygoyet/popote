@@ -85,6 +85,7 @@ interface Ctx {
   supprimerProduit: (id: string) => void
   setCanon: (produitId: string, canonId: string | null) => void
   setSansConcept: (produitId: string, v: boolean) => void
+  recalculerCanons: () => number
   // personnes
   ajouterPersonne: (p: Omit<Personne, 'id'>) => string
   majPersonne: (id: string, maj: Partial<Personne>) => void
@@ -290,8 +291,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const upsertProduit: Ctx['upsertProduit'] = (p) =>
     set((d) => {
       let prod = p
-      // produit non générique sans concept -> on tente de le rattacher (canonId)
-      if (!SEED_IDS.has(p.id) && !p.canonId) {
+      // produit non générique sans concept -> on tente de le rattacher (canonId).
+      // (les concepts créés par l'utilisatrice, id 'concept-…', sont eux-mêmes des
+      // ingrédients de référence : pas d'auto-rattachement.)
+      if (!SEED_IDS.has(p.id) && !p.id.startsWith('concept-') && !p.canonId) {
         const c = matcherProduit(p.nom, PRODUITS_SEED)
         if (c && c !== p.id) prod = { ...p, canonId: c }
       }
@@ -303,8 +306,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const setCanon: Ctx['setCanon'] = (produitId, canonId) =>
     set((d) => ({
       ...d,
-      produits: d.produits.map((p) => (p.id === produitId ? { ...p, canonId: canonId ?? undefined } : p)),
+      produits: d.produits.map((p) =>
+        p.id === produitId
+          ? { ...p, canonId: canonId ?? undefined, canonManuel: canonId ? true : undefined }
+          : p,
+      ),
     }))
+
+  // recalcule les correspondances auto (off-/perso-), en PRÉSERVANT les choix manuels
+  const recalculerCanons: Ctx['recalculerCanons'] = () => {
+    const concepts = data.produits.filter((p) => !p.id.startsWith('off-') && !p.id.startsWith('perso-'))
+    let n = 0
+    const produits = data.produits.map((p) => {
+      if (p.canonManuel || (!p.id.startsWith('off-') && !p.id.startsWith('perso-'))) return p
+      const c = matcherProduit(p.nom, concepts)
+      if ((c ?? undefined) !== p.canonId) n++
+      return { ...p, canonId: c ?? undefined }
+    })
+    set((d) => ({ ...d, produits }))
+    return n
+  }
 
   const setSansConcept: Ctx['setSansConcept'] = (produitId, v) =>
     set((d) => ({
@@ -633,6 +654,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     supprimerProduit,
     setCanon,
     setSansConcept,
+    recalculerCanons,
     ajouterPersonne,
     majPersonne,
     supprimerPersonne,

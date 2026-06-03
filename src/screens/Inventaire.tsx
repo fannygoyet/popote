@@ -28,7 +28,7 @@ const RAYONS: { cle: Rayon; label: string; ic: string }[] = [
 ]
 
 export function Inventaire() {
-  const { data, produit, setStock, ajusterStock, upsertProduit, supprimerProduit } = useStore()
+  const { data, produit, setStock, ajusterStock, upsertProduit, supprimerProduit, recalculerCanons } = useStore()
   const [scan, setScan] = useState(false)
   const [mode, setMode] = useState<'courses' | 'complet'>('courses')
   const [ajout, setAjout] = useState(false)
@@ -270,10 +270,21 @@ export function Inventaire() {
             )}
           </div>
           {groupe === 'reconnaitre' && (
-            <p className="sous-titre" style={{ margin: 0 }}>
-              Touche « 🏷️ à reconnaître » sous un produit pour lui dire ce que c'est. Il comptera alors
-              dans tes recettes.
-            </p>
+            <>
+              <p className="sous-titre" style={{ margin: 0 }}>
+                Touche « 🏷️ à reconnaître » sous un produit pour lui dire ce que c'est (tu peux aussi
+                créer un nouvel ingrédient). Il comptera alors dans tes recettes.
+              </p>
+              <button
+                className="btn fantome bloc petit"
+                onClick={() => {
+                  const n = recalculerCanons()
+                  setMsg(n ? `🔄 ${n} correspondance(s) recalculée(s)` : 'Rien à recalculer')
+                }}
+              >
+                🔄 Recalculer les correspondances (garde mes choix manuels)
+              </button>
+            </>
           )}
         </>
       )}

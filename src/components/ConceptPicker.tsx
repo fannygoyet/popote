@@ -1,22 +1,42 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/store'
-import { PRODUITS_SEED } from '../store/seed'
 import type { Produit } from '../store/types'
 
-// Permet d'associer un article (scanné/manuel) à un ingrédient générique connu
-// des recettes -> il devient utilisable dans les propositions.
+function slug(s: string) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+// Associe un article (scanné/manuel) à un ingrédient générique connu des recettes,
+// OU permet de créer un nouvel ingrédient si aucun ne convient.
 export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose: () => void }) {
-  const { setCanon, setSansConcept, produit: getProduit } = useStore()
+  const { data, setCanon, setSansConcept, upsertProduit, produit: getProduit } = useStore()
   const [q, setQ] = useState('')
 
+  // concepts = ingrédients de référence (tout sauf les articles bruts off-/perso-)
   const concepts = useMemo(
     () =>
-      PRODUITS_SEED.filter((c) => c.nom.toLowerCase().includes(q.toLowerCase().trim())).sort((a, b) =>
-        a.nom.localeCompare(b.nom),
-      ),
-    [q],
+      data.produits
+        .filter((p) => !p.id.startsWith('off-') && !p.id.startsWith('perso-') && p.id !== produit.id)
+        .filter((p) => p.nom.toLowerCase().includes(q.toLowerCase().trim()))
+        .sort((a, b) => a.nom.localeCompare(b.nom)),
+    [data.produits, q, produit.id],
   )
   const actuel = produit.canonId ? getProduit(produit.canonId) : undefined
+  const ql = q.trim()
+  const existeDeja = concepts.some((c) => c.nom.toLowerCase() === ql.toLowerCase())
+
+  function creerConcept() {
+    const id = 'concept-' + slug(ql)
+    if (!id || id === 'concept-') return
+    upsertProduit({ id, nom: ql, rayon: produit.rayon, type: produit.type, kcal100: produit.kcal100, perissable: produit.perissable })
+    setCanon(produit.id, id)
+    onClose()
+  }
 
   return (
     <div
@@ -35,7 +55,7 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
           </button>
         </div>
         <p className="sous-titre" style={{ margin: 0 }}>
-          Associe-le à un ingrédient générique pour qu'il compte dans tes recettes.
+          Associe-le à un ingrédient (ton produit garde son nom). S'il n'existe pas, crée-le.
         </p>
 
         {actuel && (
@@ -49,17 +69,18 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
           </div>
         )}
 
-        <button
-          className="btn fantome bloc petit"
-          onClick={() => {
-            setSansConcept(produit.id, true)
-            onClose()
-          }}
-        >
+        <button className="btn fantome bloc petit" onClick={() => { setSansConcept(produit.id, true); onClose() }}>
           🙅 Laisser tel quel (pas un ingrédient de recette)
         </button>
 
-        <input className="champ" autoFocus placeholder="🔍 saumon, courgette, riz…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="champ" autoFocus placeholder="🔍 chercher ou nommer un ingrédient…" value={q} onChange={(e) => setQ(e.target.value)} />
+
+        {ql.length >= 2 && !existeDeja && (
+          <button className="btn bloc" onClick={creerConcept}>
+            ➕ Créer l'ingrédient « {ql} »
+          </button>
+        )}
+
         {concepts.map((c) => (
           <button
             key={c.id}
@@ -71,11 +92,6 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
             <span className="tag">{c.rayon}</span>
           </button>
         ))}
-
-        <p className="sous-titre" style={{ margin: '6px 0 0' }}>
-          Pas dans la liste ? Exporte ton placard (bouton en haut) et envoie-le moi : j'ajoute des
-          recettes pour ces ingrédients. 😉
-        </p>
       </div>
     </div>
   )
