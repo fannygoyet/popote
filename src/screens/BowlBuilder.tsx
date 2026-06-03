@@ -55,6 +55,8 @@ export function BowlBuilder() {
   const nav = useNavigate()
   const [tour, setTour] = useState(0)
   const [swap, setSwap] = useState<Record<string, number>>({})
+  const [choix, setChoix] = useState<Record<string, string>>({}) // slotKey -> ingrédient choisi à la main
+  const [selSlot, setSelSlot] = useState<(typeof SLOTS)[number] | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
 
   // concepts présents dans les placards (résolus via canonId), dédupliqués
@@ -81,11 +83,26 @@ export function BowlBuilder() {
   }, [concepts])
 
   // compose un bowl : un item par slot, sans répéter un même aliment
+  // 1) les choix manuels sont posés et réservés, 2) le reste est tiré (aléatoire/rotation)
   const bowl = useMemo(() => {
     const used = new Set<string>()
-    return SLOTS.map((slot) => {
+    const res: Record<string, Item | null> = {}
+    for (const slot of SLOTS) {
+      const cid = choix[slot.key]
+      if (!cid) continue
+      const it = candidats[slot.role].find((c) => c.id === cid)
+      if (it && !used.has(it.id)) {
+        res[slot.key] = it
+        used.add(it.id)
+      }
+    }
+    for (const slot of SLOTS) {
+      if (res[slot.key] !== undefined) continue
       const cand = candidats[slot.role]
-      if (!cand.length) return { slot, item: null as Item | null }
+      if (!cand.length) {
+        res[slot.key] = null
+        continue
+      }
       const offset = tour + (swap[slot.key] ?? 0)
       let chosen: Item | null = null
       for (let k = 0; k < cand.length; k++) {
@@ -96,9 +113,10 @@ export function BowlBuilder() {
         }
       }
       if (chosen) used.add(chosen.id)
-      return { slot, item: chosen }
-    })
-  }, [candidats, tour, swap])
+      res[slot.key] = chosen
+    }
+    return SLOTS.map((slot) => ({ slot, item: res[slot.key] ?? null }))
+  }, [candidats, tour, swap, choix])
 
   const choisis = bowl.filter((b) => b.item)
   const kcal = Math.round(
@@ -111,9 +129,20 @@ export function BowlBuilder() {
   const foyer = data.personnes.filter((p) => p.foyer !== false)
 
   function cycler(key: string) {
+    // « au hasard » sur ce slot : on oublie le choix manuel et on tourne
+    setChoix((c) => {
+      const n = { ...c }
+      delete n[key]
+      return n
+    })
     setSwap((s) => ({ ...s, [key]: (s[key] ?? 0) + 1 }))
   }
+  function choisir(key: string, id: string) {
+    setChoix((c) => ({ ...c, [key]: id }))
+    setSelSlot(null)
+  }
   function remelanger() {
+    setChoix({})
     setSwap({})
     setTour((t) => t + 1)
   }
@@ -144,7 +173,7 @@ export function BowlBuilder() {
       ) : !assezPourBowl ? (
         <>
           <Mascotte texte="Il me manque des bases ou des garnitures pour un vrai bowl. Ajoute de quoi (riz, pâtes, salade, une protéine, des légumes…) 🙂" />
-          <BowlListe bowl={bowl} onCycle={cycler} produit={produit} />
+          <BowlListe bowl={bowl} onPick={setSelSlot} onCycle={cycler} produit={produit} />
         </>
       ) : (
         <>
@@ -156,7 +185,7 @@ export function BowlBuilder() {
             }
           />
 
-          <BowlListe bowl={bowl} onCycle={cycler} produit={produit} />
+          <BowlListe bowl={bowl} onPick={setSelSlot} onCycle={cycler} produit={produit} />
 
           <div className="carte ligne espace" style={{ background: 'var(--beurre-clair)' }}>
             <span style={{ fontWeight: 700 }}>≈ {kcal} kcal</span>
@@ -180,39 +209,97 @@ export function BowlBuilder() {
           </button>
         </>
       )}
+
+      {/* Sélection des possibles pour un emplacement (depuis les placards) */}
+      {selSlot && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(74,68,88,.35)', zIndex: 48, display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setSelSlot(null)}
+        >
+          <div
+            className="pile"
+            style={{ background: 'var(--lilas-fond)', width: '100%', maxWidth: 480, margin: '0 auto', borderRadius: '30px 30px 0 0', padding: 16, maxHeight: '85vh', overflowY: 'auto', gap: 10 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ligne espace">
+              <h3>
+                {selSlot.ic} {selSlot.label} — au choix
+              </h3>
+              <button className="btn clair petit" onClick={() => setSelSlot(null)}>
+                Fermer
+              </button>
+            </div>
+            <button className="btn fantome bloc petit" onClick={() => { cycler(selSlot.key); setSelSlot(null) }}>
+              🎲 Au hasard
+            </button>
+            {candidats[selSlot.role].length === 0 && (
+              <p className="sous-titre" style={{ margin: 0 }}>
+                Rien de dispo pour ça dans tes placards. Ajoute des produits 🙂
+              </p>
+            )}
+            {candidats[selSlot.role].map((c) => {
+              const actif = choix[selSlot.key] === c.id
+              return (
+                <button
+                  key={c.id}
+                  className="carte ligne espace"
+                  style={{ padding: '12px 16px', textAlign: 'left', background: actif ? 'var(--menthe-clair)' : undefined }}
+                  onClick={() => choisir(selSlot.key, c.id)}
+                >
+                  <strong>{produit(c.id)?.nom ?? c.nom}</strong>
+                  {actif && <span className="tag" style={{ background: 'var(--menthe)', color: '#2c6b53' }}>✓ choisi</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 function BowlListe({
   bowl,
+  onPick,
   onCycle,
   produit,
 }: {
-  bowl: { slot: { role: string; key: string; label: string; ic: string }; item: { id: string; nom: string } | null }[]
+  bowl: { slot: (typeof SLOTS)[number]; item: Item | null }[]
+  onPick: (slot: (typeof SLOTS)[number]) => void
   onCycle: (key: string) => void
   produit: (id: string) => { nom: string } | undefined
 }) {
   return (
     <div className="pile" style={{ gap: 8 }}>
       {bowl.map(({ slot, item }) => (
-        <button
+        <div
           key={slot.key}
           className="carte ligne espace"
-          style={{ padding: '12px 16px', textAlign: 'left', opacity: item ? 1 : 0.55 }}
-          disabled={!item}
-          onClick={() => item && onCycle(slot.key)}
-          title="Changer cet ingrédient"
+          style={{ padding: '10px 12px 10px 16px', gap: 8, opacity: item ? 1 : 0.55 }}
         >
-          <span className="ligne" style={{ gap: 10, minWidth: 0 }}>
+          <button
+            style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
+            disabled={!item}
+            onClick={() => onPick(slot)}
+            title="Choisir parmi mes placards"
+          >
             <span style={{ fontSize: 22 }}>{slot.ic}</span>
             <span style={{ minWidth: 0 }}>
               <span className="sous-titre" style={{ fontSize: 12, display: 'block' }}>{slot.label}</span>
               <strong>{item ? (produit(item.id)?.nom ?? item.nom) : '— rien de dispo'}</strong>
             </span>
-          </span>
-          {item && <span className="tag" style={{ background: 'var(--lilas-clair)', color: 'var(--lilas)' }}>🔄</span>}
-        </button>
+          </button>
+          {item && (
+            <button
+              className="rond"
+              style={{ width: 34, height: 34, background: 'var(--lilas-clair)', color: 'var(--lilas)', flexShrink: 0 }}
+              title="Au hasard"
+              onClick={() => onCycle(slot.key)}
+            >
+              🎲
+            </button>
+          )}
+        </div>
       ))}
     </div>
   )

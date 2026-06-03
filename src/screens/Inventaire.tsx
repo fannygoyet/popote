@@ -294,12 +294,16 @@ export function Inventaire() {
 
       {data.stock.length > 0 && (
         <>
-          <input
-            className="champ"
-            placeholder="🔍 Chercher dans mes placards…"
-            value={rechercheStock}
-            onChange={(e) => setRechercheStock(e.target.value)}
-          />
+          {/* la recherche reste collée en haut : on voit ce qu'on tape même en faisant défiler */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--lilas-fond)', margin: '0 -16px', padding: '6px 16px 8px' }}>
+            <input
+              className="champ"
+              style={{ width: '100%' }}
+              placeholder="🔍 Chercher dans mes placards…"
+              value={rechercheStock}
+              onChange={(e) => setRechercheStock(e.target.value)}
+            />
+          </div>
           <div className="tags">
             <button className={'chip' + (groupe === 'lieu' ? ' actif' : '')} onClick={() => setGroupe('lieu')}>
               📍 Par lieu
