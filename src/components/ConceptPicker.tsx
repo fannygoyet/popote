@@ -1,14 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/store'
+import { normRecherche } from '../store/util'
 import type { Produit } from '../store/types'
 
 function slug(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+  return normRecherche(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
 // Associe un article (scanné/manuel) à un ingrédient générique connu des recettes,
@@ -22,7 +18,7 @@ export function ConceptPicker({ produit, onClose }: { produit: Produit; onClose:
     () =>
       data.produits
         .filter((p) => !p.id.startsWith('off-') && !p.id.startsWith('perso-') && p.id !== produit.id)
-        .filter((p) => p.nom.toLowerCase().includes(q.toLowerCase().trim()))
+        .filter((p) => normRecherche(p.nom).includes(normRecherche(q)))
         .sort((a, b) => a.nom.localeCompare(b.nom)),
     [data.produits, q, produit.id],
   )

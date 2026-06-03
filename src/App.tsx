@@ -15,6 +15,7 @@ import { CreerRecette } from './screens/CreerRecette'
 import { Sync } from './screens/Sync'
 import { Enfant } from './screens/Enfant'
 import { ImportReel } from './screens/ImportReel'
+import { BowlBuilder } from './screens/BowlBuilder'
 
 export default function App() {
   const { data } = useStore()
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/" element={<Accueil />} />
         <Route path="/flemme" element={<Flemme />} />
+        <Route path="/bowl" element={<BowlBuilder />} />
         <Route path="/recettes" element={<Recettes />} />
         <Route path="/creer-recette" element={<CreerRecette />} />
         <Route path="/import" element={<ImportReel />} />

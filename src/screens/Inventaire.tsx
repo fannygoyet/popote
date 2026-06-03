@@ -5,7 +5,12 @@ import { QueCuisiner } from '../components/QueCuisiner'
 import { ConceptPicker } from '../components/ConceptPicker'
 import { chercherProduitParCodeBarres } from '../store/openfoodfacts'
 import { estComptable, estCondiment } from '../store/seed'
+import { normRecherche } from '../store/util'
 import type { Lieu, Produit, Rayon, StockItem } from '../store/types'
+
+function slug(s: string) {
+  return normRecherche(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 const estBrut = (p?: Produit) => !!p && (p.id.startsWith('off-') || p.id.startsWith('perso-'))
 // produit à proposer dans « à reconnaître » : brut, sans concept, pas écarté, pas un condiment
@@ -143,8 +148,8 @@ export function Inventaire() {
 
   // stock filtré par la recherche, regroupé par lieu OU par catégorie
   const groupesStock = useMemo(() => {
-    const q = rechercheStock.toLowerCase().trim()
-    const filtre = data.stock.filter((s) => (produit(s.produitId)?.nom ?? '').toLowerCase().includes(q))
+    const q = normRecherche(rechercheStock)
+    const filtre = data.stock.filter((s) => normRecherche(produit(s.produitId)?.nom ?? '').includes(q))
     if (groupe === 'reconnaitre') {
       const items = filtre.filter((s) => aReconnaitre(produit(s.produitId)))
       return items.length ? [{ cle: 'reconnaitre', label: 'À reconnaître', ic: '🏷️', items }] : []
@@ -223,13 +228,23 @@ export function Inventaire() {
     }
   }
 
-  const resultats = useMemo(
-    () =>
-      data.produits
-        .filter((p) => p.nom.toLowerCase().includes(recherche.toLowerCase().trim()))
-        .sort((a, b) => a.nom.localeCompare(b.nom)),
-    [data.produits, recherche],
-  )
+  const resultats = useMemo(() => {
+    const q = normRecherche(recherche)
+    return data.produits
+      .filter((p) => normRecherche(p.nom).includes(q))
+      .sort((a, b) => a.nom.localeCompare(b.nom))
+  }, [data.produits, recherche])
+
+  // crée un produit frais qui n'existe pas encore (ex. « brugnons ») et l'ajoute au stock
+  function creerFrais() {
+    const nom = recherche.trim().slice(0, 40)
+    if (nom.length < 2) return
+    const id = 'perso-' + slug(nom) + '-' + Math.random().toString(36).slice(2, 6)
+    upsertProduit({ id, nom: nom.charAt(0).toUpperCase() + nom.slice(1), rayon: 'fruits-legumes', type: 'frais', kcal100: null, perissable: true })
+    setStock(id, 1)
+    setMsg(`Ajouté : ${nom}`)
+    setRecherche('')
+  }
 
   return (
     <div className="ecran pile" style={{ gap: 16 }}>
@@ -503,22 +518,34 @@ export function Inventaire() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="ligne espace">
-              <h3>Ajouter un produit</h3>
-              <button className="btn clair petit" onClick={() => setAjout(false)}>
-                Fermer
-              </button>
+            {/* en-tête + recherche : restent collés en haut quand on fait défiler la liste */}
+            <div
+              className="pile"
+              style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--lilas-fond)', margin: '-16px -16px 0', padding: '16px 16px 10px', gap: 10 }}
+            >
+              <div className="ligne espace">
+                <h3>Ajouter un produit</h3>
+                <button className="btn clair petit" onClick={() => setAjout(false)}>
+                  Fermer
+                </button>
+              </div>
+              <input
+                className="champ"
+                autoFocus
+                placeholder="🔍 Poulet, courgette, brugnons…"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+              />
+              {recherche.trim().length >= 2 &&
+                !resultats.some((p) => normRecherche(p.nom) === normRecherche(recherche)) && (
+                  <button className="btn bloc petit" onClick={creerFrais}>
+                    ➕ Créer « {recherche.trim()} » (frais)
+                  </button>
+                )}
             </div>
             <p className="sous-titre" style={{ margin: 0 }}>
-              Tape sur ce que tu as. Pas besoin de quantité — c'est juste « j'en ai ». 🙂
+              Tape sur ce que tu as, ou crée-le s'il n'existe pas. Pas besoin de quantité. 🙂
             </p>
-            <input
-              className="champ"
-              autoFocus
-              placeholder="🔍 Poulet, courgette, riz…"
-              value={recherche}
-              onChange={(e) => setRecherche(e.target.value)}
-            />
             {resultats.map((p) => {
               const dedans = qte(p.id) > 0
               const perso = p.id.startsWith('perso-') || p.id.startsWith('off-')

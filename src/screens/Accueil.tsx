@@ -60,6 +60,18 @@ export function Accueil() {
         </button>
       </div>
 
+      <button
+        className="carte-pleine ligne"
+        onClick={() => nav('/bowl')}
+        style={{ gap: 14, background: 'linear-gradient(150deg, var(--menthe-clair), var(--beurre-clair))', textAlign: 'left' }}
+      >
+        <span style={{ fontSize: 40 }}>🥗</span>
+        <div>
+          <strong style={{ fontSize: 18 }}>Bowl à construire</strong>
+          <div style={{ fontSize: 13, color: 'var(--texte-doux)' }}>Un bowl équilibré avec ce que j'ai déjà</div>
+        </div>
+      </button>
+
       <button className="btn fantome bloc" onClick={() => nav('/manger')}>
         🍽️ J'ai mangé (resto, grignotage…)
       </button>
