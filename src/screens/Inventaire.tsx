@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/store'
 import { Scanner } from '../components/Scanner'
 import { chercherProduitParCodeBarres } from '../store/openfoodfacts'
-import type { Lieu } from '../store/types'
+import type { Lieu, Produit } from '../store/types'
 
 const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
   { cle: 'frigo', label: 'Frigo', ic: '🧊' },
@@ -13,9 +13,13 @@ const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
 export function Inventaire() {
   const { data, produit, setStock, ajusterStock, upsertProduit, supprimerProduit } = useStore()
   const [scan, setScan] = useState(false)
+  const [mode, setMode] = useState<'courses' | 'complet'>('courses')
   const [ajout, setAjout] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
+  const [recon, setRecon] = useState<Produit[] | null>(null) // produits non scannés en mode complet
+  const [aRetirer, setARetirer] = useState<Set<string>>(new Set())
+  const scannes = useRef<Set<string>>(new Set()) // produits vus pendant la session de scan
 
   function qte(produitId: string) {
     return data.stock.find((s) => s.produitId === produitId)?.quantite ?? 0
@@ -26,16 +30,42 @@ export function Inventaire() {
   async function onCode(code: string): Promise<string | null> {
     const existant = data.produits.find((p) => p.codeBarres === code)
     if (existant) {
+      scannes.current.add(existant.id)
       setStock(existant.id, Math.max(1, qte(existant.id)))
       return existant.nom
     }
     const trouve = await chercherProduitParCodeBarres(code)
     if (trouve) {
+      scannes.current.add(trouve.id)
       upsertProduit(trouve)
       setStock(trouve.id, 1)
       return trouve.nom
     }
     return null
+  }
+
+  function ouvrirScan(m: 'courses' | 'complet') {
+    scannes.current = new Set()
+    setMode(m)
+    setScan(true)
+  }
+
+  // À la fermeture du scan : en mode "inventaire complet", on repère ce qui était
+  // en stock mais n'a pas été scanné -> « tu n'aurais pas oublié… ? »
+  function fermerScan() {
+    setScan(false)
+    if (mode === 'complet') {
+      const oublis = data.stock
+        .filter((s) => s.quantite > 0 && !scannes.current.has(s.produitId))
+        .map((s) => produit(s.produitId))
+        .filter(Boolean) as Produit[]
+      if (oublis.length) {
+        setARetirer(new Set())
+        setRecon(oublis)
+      } else {
+        setMsg('Inventaire à jour ✓')
+      }
+    }
   }
 
   const resultats = useMemo(
@@ -56,13 +86,20 @@ export function Inventaire() {
       </div>
 
       <div className="grille-2">
-        <button className="btn bloc" onClick={() => setScan(true)}>
-          📷 Scanner
+        <button className="btn bloc" onClick={() => ouvrirScan('courses')}>
+          🛒 Scanner mes courses
         </button>
         <button className="btn fantome bloc" onClick={() => setAjout(true)}>
           🥕 Ajouter du frais
         </button>
       </div>
+      <button className="btn fantome bloc" onClick={() => ouvrirScan('complet')}>
+        🧾 Refaire tout mon inventaire
+      </button>
+      <p className="sous-titre" style={{ margin: '-6px 4px 0' }}>
+        « Mes courses » ajoute ce que tu scannes. « Inventaire complet » : tu scannes tout, et je te
+        signale ce qui manque à l'appel.
+      </p>
 
       {msg && (
         <div className="carte ligne espace" style={{ background: 'var(--menthe-clair)' }}>
@@ -124,7 +161,61 @@ export function Inventaire() {
         )
       })}
 
-      {scan && <Scanner onCode={onCode} onClose={() => setScan(false)} />}
+      {scan && <Scanner onCode={onCode} onClose={fermerScan} />}
+
+      {/* Réconciliation après un inventaire complet */}
+      {recon && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(74,68,88,.35)', zIndex: 45, display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setRecon(null)}
+        >
+          <div
+            className="pile"
+            style={{ background: 'var(--lilas-fond)', width: '100%', maxWidth: 480, margin: '0 auto', borderRadius: '30px 30px 0 0', padding: 16, maxHeight: '85vh', overflowY: 'auto', gap: 10 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Tu n'aurais pas oublié… ? 🤔</h3>
+            <p className="sous-titre" style={{ margin: 0 }}>
+              Ces produits étaient dans tes placards mais tu ne les as pas scannés. Tu les as encore ?
+              Décoche ceux que tu n'as plus.
+            </p>
+            {recon.map((p) => {
+              const garde = !aRetirer.has(p.id)
+              return (
+                <button
+                  key={p.id}
+                  className="carte ligne espace"
+                  style={{ padding: '12px 16px', textAlign: 'left' }}
+                  onClick={() =>
+                    setARetirer((s) => {
+                      const n = new Set(s)
+                      n.has(p.id) ? n.delete(p.id) : n.add(p.id)
+                      return n
+                    })
+                  }
+                >
+                  <span style={{ fontWeight: 700, textDecoration: garde ? 'none' : 'line-through', opacity: garde ? 1 : 0.5 }}>
+                    {p.nom}
+                  </span>
+                  <span className="tag" style={garde ? { background: 'var(--menthe)', color: '#2c6b53' } : { background: 'var(--rose-clair)', color: '#a33a63' }}>
+                    {garde ? '✓ je l\'ai' : '🗑️ je l\'ai plus'}
+                  </span>
+                </button>
+              )
+            })}
+            <button
+              className="btn bloc"
+              onClick={() => {
+                aRetirer.forEach((id) => setStock(id, 0))
+                setMsg(aRetirer.size ? `${aRetirer.size} produit(s) retiré(s)` : 'Inventaire confirmé ✓')
+                setRecon(null)
+              }}
+            >
+              Confirmer mon inventaire
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Feuille d'ajout rapide */}
       {ajout && (
@@ -196,6 +287,22 @@ export function Inventaire() {
                       {dedans ? '✓ j\'en ai' : '+ ajouter'}
                     </span>
                   </button>
+                  {perso && (
+                    <button
+                      className="rond"
+                      style={{ width: 34, height: 34, background: 'var(--lilas-clair)', color: 'var(--lilas)', flexShrink: 0 }}
+                      title="Renommer ce produit"
+                      onClick={() => {
+                        const n = prompt('Nouveau nom du produit :', p.nom)
+                        if (n && n.trim()) {
+                          upsertProduit({ ...p, nom: n.trim().slice(0, 40) })
+                          setMsg(`Renommé : ${n.trim()}`)
+                        }
+                      }}
+                    >
+                      ✏️
+                    </button>
+                  )}
                   {perso && (
                     <button
                       className="rond"
