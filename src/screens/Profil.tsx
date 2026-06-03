@@ -34,7 +34,7 @@ function AppetitChips({ value, onChange }: { value: number; onChange: (v: number
 }
 
 export function Profil() {
-  const { data, kcalDuJour, setGout, reset, produit, sync, ajouterPersonne, majPersonne, supprimerPersonne } =
+  const { data, kcalDuJour, setGout, reset, produit, sync, set, ajouterPersonne, majPersonne, supprimerPersonne } =
     useStore()
   const nav = useNavigate()
   const [actif, setActif] = useState(0)
@@ -290,6 +290,44 @@ export function Profil() {
           </div>
         ))}
       </div>
+
+      {/* Préférence santé (globale au foyer) */}
+      <button
+        className="carte ligne espace"
+        onClick={() => set((d) => ({ ...d, prefAntiInflam: !d.prefAntiInflam }))}
+        style={{ textAlign: 'left' }}
+      >
+        <div>
+          <strong>🌿 Privilégier l'anti-inflammatoire</strong>
+          <p className="sous-titre" style={{ margin: '2px 0 0' }}>
+            Popote met en avant les repas riches en légumes, poissons gras, légumineuses…
+          </p>
+        </div>
+        <span
+          style={{
+            width: 52,
+            height: 30,
+            borderRadius: 999,
+            background: data.prefAntiInflam ? 'var(--menthe)' : 'var(--lilas-clair)',
+            position: 'relative',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              position: 'absolute',
+              top: 3,
+              left: data.prefAntiInflam ? 25 : 3,
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: 'white',
+              transition: 'left .15s',
+              boxShadow: '0 2px 6px rgba(0,0,0,.2)',
+            }}
+          />
+        </span>
+      </button>
 
       {/* Éditeur de goûts (évolutif) */}
       <div className="carte pile" style={{ gap: 10 }}>

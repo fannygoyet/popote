@@ -49,8 +49,16 @@ export function CreerRecette() {
   const { data, produit, upsertProduit, addRecette, supprimerRecette } = useStore()
   const nav = useNavigate()
   const loc = useLocation()
-  const edit = (loc.state as { edit?: Recette })?.edit
-  const nomInit = (loc.state as { nom?: string })?.nom ?? ''
+  const st = (loc.state as {
+    edit?: Recette
+    nom?: string
+    etapes?: string[]
+    ingredients?: Ingredient[]
+    source?: 'reseaux'
+    lien?: string
+  }) ?? {}
+  const edit = st.edit
+  const nomInit = st.nom ?? ''
 
   const [nom, setNom] = useState(edit?.nom ?? nomInit)
   const [emoji, setEmoji] = useState(edit?.emoji ?? '🍽️')
@@ -59,8 +67,8 @@ export function CreerRecette() {
   const [difficulte, setDifficulte] = useState<1 | 2 | 3>(edit?.difficulte ?? 1)
   const [moments, setMoments] = useState<Moment[]>(edit?.moments ?? ['diner'])
   const [tags, setTags] = useState<string[]>(edit?.tags ?? [])
-  const [ingredients, setIngredients] = useState<Ingredient[]>(edit?.ingredients ?? [])
-  const [etapes, setEtapes] = useState<string[]>(edit?.etapes ?? [''])
+  const [ingredients, setIngredients] = useState<Ingredient[]>(edit?.ingredients ?? st.ingredients ?? [])
+  const [etapes, setEtapes] = useState<string[]>(edit?.etapes ?? (st.etapes?.length ? st.etapes : ['']))
   const [kcalManuel, setKcalManuel] = useState<number | ''>(edit?.kcalPortion ?? '')
   const [ajusterKcal, setAjusterKcal] = useState(false)
   const [rech, setRech] = useState('')
@@ -138,6 +146,8 @@ export function CreerRecette() {
       ingredients,
       etapes: etapes.map((e) => e.trim()).filter(Boolean),
       kcalPortion,
+      source: edit?.source ?? st.source,
+      lien: edit?.lien ?? st.lien,
       ...axes(),
     }
     const id = addRecette(r)

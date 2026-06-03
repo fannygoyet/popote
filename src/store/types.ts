@@ -57,6 +57,8 @@ export interface Recette {
   legume: number
   feculent: number
   perso?: boolean // créée par l'utilisateur (modifiable / supprimable)
+  source?: 'reseaux' // provenance (ex. réel Instagram / TikTok)
+  lien?: string // lien vers la vidéo d'origine
 }
 
 export type Sexe = 'F' | 'H'
@@ -121,6 +123,7 @@ export interface RepasMange {
 export interface AppData {
   version: number
   onboardingFait: boolean
+  prefAntiInflam?: boolean // privilégier les repas anti-inflammatoires
   personnes: Personne[]
   produits: Produit[]
   recettes: Recette[]

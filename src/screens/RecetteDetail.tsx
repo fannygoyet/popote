@@ -98,6 +98,11 @@ export function RecetteDetail() {
           <span>🔥 {Math.round(r.kcalPortion)} kcal/pers</span>
           <span>{'⭐'.repeat(r.difficulte)}</span>
         </div>
+        {r.lien && (
+          <a href={r.lien} target="_blank" rel="noreferrer" className="tag" style={{ display: 'inline-block', marginTop: 10, textDecoration: 'none' }}>
+            📱 Voir la vidéo
+          </a>
+        )}
       </div>
 
       {phase === 'noter' && <Notation recetteId={r.id} pour={pour} onFini={() => nav('/')} />}

@@ -21,23 +21,21 @@ export function Inventaire() {
     return data.stock.find((s) => s.produitId === produitId)?.quantite ?? 0
   }
 
-  async function onCode(code: string) {
-    setScan(false)
+  // Un scan = « j'en ai » (présence). On ne ré-incrémente pas : pas de quantité surprise.
+  // Renvoie le nom ajouté (ou null si le produit est inconnu d'Open Food Facts).
+  async function onCode(code: string): Promise<string | null> {
     const existant = data.produits.find((p) => p.codeBarres === code)
     if (existant) {
-      setStock(existant.id, qte(existant.id) + 1, { unite: 'piece' })
-      setMsg(`+1 ${existant.nom}`)
-      return
+      setStock(existant.id, Math.max(1, qte(existant.id)))
+      return existant.nom
     }
-    setMsg('Recherche du produit…')
     const trouve = await chercherProduitParCodeBarres(code)
     if (trouve) {
       upsertProduit(trouve)
-      setStock(trouve.id, qte(trouve.id) + 1, { unite: 'piece' })
-      setMsg(`Ajouté : ${trouve.nom}${trouve.kcal100 ? ` (${trouve.kcal100} kcal/100g)` : ''}`)
-    } else {
-      setMsg("Produit inconnu. Ajoute-le via « Ajouter du frais ».")
+      setStock(trouve.id, 1)
+      return trouve.nom
     }
+    return null
   }
 
   const resultats = useMemo(

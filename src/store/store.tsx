@@ -14,6 +14,7 @@ import type {
 } from './types'
 import { PRODUITS_SEED, RECETTES_SEED } from './seed'
 import { aujourdhui } from './util'
+import { scoreAntiInflam } from './sante'
 import { getSyncConfig, setSyncConfig, pull, push, ping, type SyncConfig } from './sync'
 
 export type EtatSync = 'off' | 'idle' | 'sync' | 'ok' | 'err'
@@ -399,6 +400,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // les recettes jamais testées ont un petit bonus de curiosité
     const dejaTeste = data.avis.some((a) => a.recetteId === r.id)
     if (!dejaTeste) score += 0.6
+    // si l'utilisatrice privilégie l'anti-inflammatoire, on pousse ces recettes
+    if (data.prefAntiInflam) score += scoreAntiInflam(r) * 0.8
     return score
   }
 

@@ -1,4 +1,5 @@
 import type { Recette } from '../store/types'
+import { estAntiInflam } from '../store/sante'
 
 export function RecetteCarte({
   recette,
@@ -31,7 +32,7 @@ export function RecetteCarte({
           <span>⏱️ {recette.tempsMin} min</span>
           <span>🔥 {recette.kcalPortion} kcal</span>
         </div>
-        <div style={{ marginTop: 6 }}>
+        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {manquants > 0 ? (
             <span className="tag" style={{ background: 'var(--peche-clair)', color: '#b45a3c' }}>
               🛒 {manquants} à acheter
@@ -39,6 +40,11 @@ export function RecetteCarte({
           ) : (
             <span className="tag" style={{ background: 'var(--menthe-clair)', color: '#2c6b53' }}>
               ✓ Faisable maintenant
+            </span>
+          )}
+          {estAntiInflam(recette) && (
+            <span className="tag" style={{ background: 'var(--menthe-clair)', color: '#2c6b53' }}>
+              🌿 Anti-inflam
             </span>
           )}
         </div>
