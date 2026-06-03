@@ -214,16 +214,44 @@ export function analyserTexte(texte: string): RecetteExtraite {
 }
 
 // Devine quantité + unité + nom à partir d'une ligne « 200 g de pâtes ».
-export function parseLigne(ligne: string): { nom: string; quantite: number; unite: Unite } {
+// uniteDetectee/quantiteDetectee : indiquent si c'était écrit (sinon, c'est un défaut).
+export function parseLigne(ligne: string): {
+  nom: string
+  quantite: number
+  unite: Unite
+  uniteDetectee: boolean
+  quantiteDetectee: boolean
+} {
   let s = ligne.trim().replace(/^[-•*·\s]+/, '')
   let quantite = 0
   let unite: Unite = 'g'
-  const m = s.match(
-    /^(\d+[.,]?\d*)\s*(kg|g|ml|cl|l|c\.?\s?à\.?\s?s|càs|cas|cs|cuill?[èe]res?\s+à\s+soupe|c\.?\s?à\.?\s?c|càc|cac|cc|cuill?[èe]res?\s+à\s+caf[ée]|pinc[ée]es?|gousses?|tranches?|sachets?|bo[îi]tes?|œufs?|oeufs?)?\b/i,
-  )
+  let uniteDetectee = false
+  let quantiteDetectee = false
+
+  // fractions « 1/2 », « ½ »
+  const FRAC: Record<string, number> = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3 }
+  const fr = s.match(/^(\d+)\s*\/\s*(\d+)\b/)
+  const fu = s.match(/^([½¼¾⅓⅔])/)
+  if (fr) {
+    quantite = parseInt(fr[1], 10) / parseInt(fr[2], 10)
+    quantiteDetectee = true
+    s = s.slice(fr[0].length)
+  } else if (fu) {
+    quantite = FRAC[fu[1]]
+    quantiteDetectee = true
+    s = s.slice(fu[0].length)
+  }
+
+  const m = !quantiteDetectee
+    ? s.match(
+        /^(\d+[.,]?\d*)\s*(kg|g|ml|cl|l|c\.?\s?à\.?\s?s|càs|cas|cs|cuill?[èe]res?\s+à\s+soupe|c\.?\s?à\.?\s?c|càc|cac|cc|cuill?[èe]res?\s+à\s+caf[ée]|pinc[ée]es?|gousses?|tranches?|sachets?|bo[îi]tes?|œufs?|oeufs?)?\b/i,
+      )
+    : null
   if (m) {
     quantite = parseFloat(m[1].replace(',', '.'))
+    quantiteDetectee = true
     const u = (m[2] || '').toLowerCase()
+    if (u) uniteDetectee = true
     if (u.startsWith('kg')) {
       unite = 'g'
       quantite *= 1000
@@ -249,17 +277,21 @@ export function parseLigne(ligne: string): { nom: string; quantite: number; unit
     if (/\bpot\b/.test(l) && /crem/.test(l)) {
       quantite = 200
       unite = 'ml'
+      uniteDetectee = true
     } else if (/\b(brique|berlingot)\b/.test(l) && /(crem|lait)/.test(l)) {
       quantite = 200
       unite = 'ml'
+      uniteDetectee = true
     } else if (/\b(boite|conserve|bocal)\b/.test(l)) {
       quantite = 400
       unite = 'g'
+      uniteDetectee = true
     } else if (/\bpot\b/.test(l) && /yaourt|fromage blanc/.test(l)) {
       quantite = 125
       unite = 'g'
+      uniteDetectee = true
     }
   }
   if (!quantite) quantite = unite === 'g' ? 100 : 1
-  return { nom: s || ligne.trim(), quantite, unite }
+  return { nom: s || ligne.trim(), quantite, unite, uniteDetectee, quantiteDetectee }
 }

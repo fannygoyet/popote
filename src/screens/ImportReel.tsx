@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { Mascotte } from '../components/Mascotte'
 import { analyserTexte, matcherProduit, nettoyerNomProduit, parseLigne, recupererDepuisLien } from '../store/extraction'
+import { POIDS_PIECE } from '../store/seed'
 import type { Ingredient } from '../store/types'
 
 function slug(s: string) {
@@ -65,8 +66,18 @@ export function ImportReel() {
   function creer() {
     const ex = analyserTexte(texte)
     const ingredients: Ingredient[] = ex.ingredients.map((l) => {
-      const { nom, quantite, unite } = parseLigne(l)
-      return { produitId: trouverOuCreer(nom), quantite, unite }
+      const p = parseLigne(l)
+      const produitId = trouverOuCreer(p.nom)
+      let { quantite, unite } = p
+      // pas d'unité écrite + produit qui se compte (tous les fruits & légumes, œuf,
+      // pain…) -> on compte en pièces, pas en grammes
+      const prod = data.produits.find((x) => x.id === produitId)
+      const comptable = prod?.rayon === 'fruits-legumes' || POIDS_PIECE[produitId] != null
+      if (!p.uniteDetectee && comptable) {
+        unite = 'piece'
+        quantite = p.quantiteDetectee ? Math.max(0.5, Math.round(quantite * 2) / 2) : 1
+      }
+      return { produitId, quantite, unite }
     })
     nav('/creer-recette', {
       state: {
