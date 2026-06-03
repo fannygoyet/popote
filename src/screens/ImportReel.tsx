@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { Mascotte } from '../components/Mascotte'
-import { analyserTexte, parseLigne, recupererDepuisLien } from '../store/extraction'
+import { analyserTexte, matcherProduit, nettoyerNomProduit, parseLigne, recupererDepuisLien } from '../store/extraction'
 import type { Ingredient } from '../store/types'
 
 function slug(s: string) {
@@ -50,13 +50,15 @@ export function ImportReel() {
   }
 
   function trouverOuCreer(nomIng: string): string {
-    const q = nomIng.toLowerCase().trim()
-    const exact = data.produits.find((p) => p.nom.toLowerCase() === q)
-    if (exact) return exact.id
-    const inclus = data.produits.find((p) => q.includes(p.nom.toLowerCase()) || p.nom.toLowerCase().includes(q))
-    if (inclus) return inclus.id
-    const id = 'perso-' + slug(nomIng)
-    upsertProduit({ id, nom: nomIng.trim().slice(0, 40), rayon: 'autre', type: 'frais', kcal100: null, perissable: false })
+    // rapprochement intelligent (ignore « un pot de », « frais »…)
+    const match = matcherProduit(nomIng, data.produits)
+    if (match) return match
+    // sinon, on crée un produit au nom propre (« Crème », pas « un pot de crème »)
+    const nomP = nettoyerNomProduit(nomIng)
+    const id = 'perso-' + (slug(nomP) || slug(nomIng) || 'ingredient')
+    const existe = data.produits.find((p) => p.id === id)
+    if (existe) return id
+    upsertProduit({ id, nom: nomP, rayon: 'autre', type: 'frais', kcal100: null, perissable: false })
     return id
   }
 

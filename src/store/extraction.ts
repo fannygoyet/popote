@@ -1,4 +1,68 @@
-import type { Unite } from './types'
+import type { Produit, Unite } from './types'
+
+// --- Rapprochement intelligent d'un nom d'ingrédient avec le référentiel ---
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae')
+}
+
+// mots à ignorer : articles, contenants, quantifieurs, qualificatifs
+const STOP = new Set([
+  'un', 'une', 'des', 'de', 'du', 'd', 'la', 'le', 'les', 'l', 'au', 'aux', 'et', 'ou', 'a',
+  'pot', 'pots', 'sachet', 'sachets', 'boite', 'boites', 'bocal', 'brique', 'briques', 'paquet', 'paquets',
+  'tranche', 'tranches', 'gousse', 'gousses', 'cuillere', 'cuilleres', 'cas', 'cac', 'cs', 'cc',
+  'environ', 'gros', 'grosse', 'grosses', 'petit', 'petite', 'petits', 'petites', 'bio',
+  'frais', 'fraiche', 'fraiches', 'liquide', 'entier', 'entiere', 'demi', 'quelques', 'beaucoup',
+  'peu', 'morceau', 'morceaux', 'filet', 'filets', 'tasse', 'verre', 'verres', 'tranchee',
+  'g', 'kg', 'ml', 'cl', 'l', 'pincee', 'pincees', 'belle', 'beau', 'bonne', 'bon',
+])
+
+function motsCles(s: string): string[] {
+  return norm(s)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w && !STOP.has(w) && !/^\d+$/.test(w))
+    .map((w) => w.replace(/(s|x)$/, '')) // singulier approximatif
+    .filter(Boolean)
+}
+
+// trouve le meilleur produit existant pour un nom d'ingrédient (ou null)
+export function matcherProduit(nomIng: string, produits: Produit[]): string | null {
+  const it = motsCles(nomIng)
+  if (!it.length) return null
+  let best: string | null = null
+  let bestScore = 0
+  for (const p of produits) {
+    const pt = motsCles(p.nom)
+    let s = 0
+    for (const w of it) if (pt.includes(w)) s++
+    if (s > 0) {
+      const score = s - pt.length * 0.02 // léger bonus aux noms courts/génériques
+      if (score > bestScore) {
+        bestScore = score
+        best = p.id
+      }
+    }
+  }
+  return best
+}
+
+// nom propre pour un nouveau produit (sans « un pot de … »)
+export function nettoyerNomProduit(nomIng: string): string {
+  const mots = nomIng
+    .replace(/[•\-*]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => {
+      const n = norm(w).replace(/[^a-z0-9]/g, '')
+      return n && !STOP.has(n) && !/^\d+$/.test(n)
+    })
+  const s = mots.join(' ').trim() || nomIng.trim()
+  return s.charAt(0).toUpperCase() + s.slice(1, 40)
+}
 
 // décode les entités HTML (&#39; &amp; …) via le DOM
 function decodeEntities(s: string): string {
@@ -23,30 +87,30 @@ function captionInstagram(html: string): string | null {
 // TikTok : oEmbed public. Sinon : lecteur Jina (best-effort).
 export async function recupererDepuisLien(url: string): Promise<string | null> {
   const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), 12000)
+  const t = setTimeout(() => ctrl.abort(), 20000)
   try {
     // --- Instagram ---
     const ig = url.match(/instagram\.com\/(reel|reels|p|tv)\/([\w-]+)/i)
     if (ig) {
       const type = ig[1].toLowerCase() === 'reels' ? 'reel' : ig[1].toLowerCase()
       const embed = `https://www.instagram.com/${type}/${ig[2]}/embed/captioned/`
-      try {
-        const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(embed), { signal: ctrl.signal })
-        if (r.ok) {
-          const cap = captionInstagram(await r.text())
-          if (cap && cap.length > 20) return cap
-        }
-      } catch {
-        /* on tente Jina ensuite */
-      }
-      try {
-        const r = await fetch('https://r.jina.ai/' + embed, { signal: ctrl.signal })
-        if (r.ok) {
+      // plusieurs proxies CORS : si l'un échoue, on essaie le suivant (fiabilité)
+      const proxies = [
+        (u: string) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+        (u: string) => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+        (u: string) => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
+        (u: string) => 'https://r.jina.ai/' + u,
+      ]
+      for (const mk of proxies) {
+        try {
+          const r = await fetch(mk(embed), { signal: ctrl.signal })
+          if (!r.ok) continue
           const txt = await r.text()
-          if (txt && !/log in|connexion/i.test(txt.slice(0, 200))) return txt
+          const cap = captionInstagram(txt)
+          if (cap && cap.length > 20) return cap
+        } catch {
+          /* proxy suivant */
         }
-      } catch {
-        /* on laissera coller à la main */
       }
       return null
     }
@@ -179,6 +243,23 @@ export function parseLigne(ligne: string): { nom: string; quantite: number; unit
     s = s.slice(m[0].length)
   }
   s = s.replace(/^\s*(de\s+|d['’]\s*|du\s+|des\s+)/i, '').trim()
+  // pas de quantité chiffrée ? on déduit du contenant (« un pot de crème » = 20 cl)
+  if (!quantite) {
+    const l = norm(ligne)
+    if (/\bpot\b/.test(l) && /crem/.test(l)) {
+      quantite = 200
+      unite = 'ml'
+    } else if (/\b(brique|berlingot)\b/.test(l) && /(crem|lait)/.test(l)) {
+      quantite = 200
+      unite = 'ml'
+    } else if (/\b(boite|conserve|bocal)\b/.test(l)) {
+      quantite = 400
+      unite = 'g'
+    } else if (/\bpot\b/.test(l) && /yaourt|fromage blanc/.test(l)) {
+      quantite = 125
+      unite = 'g'
+    }
+  }
   if (!quantite) quantite = unite === 'g' ? 100 : 1
   return { nom: s || ligne.trim(), quantite, unite }
 }
