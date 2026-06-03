@@ -1,11 +1,57 @@
 import type { Unite } from './types'
 
-// --- Récupération du texte d'une vidéo à partir de son lien (gratuit, sans backend) ---
-// TikTok : oEmbed public (fiable). Autres (Instagram…) : lecteur Jina (best-effort).
+// décode les entités HTML (&#39; &amp; …) via le DOM
+function decodeEntities(s: string): string {
+  const el = document.createElement('textarea')
+  el.innerHTML = s
+  return el.value
+}
+
+// extrait la légende du HTML de la page "embed" d'Instagram
+function captionInstagram(html: string): string | null {
+  const m = html.match(/<div[^>]*class="Caption"[\s\S]*?<\/div>/i)
+  if (!m) return null
+  const c = decodeEntities(m[0].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ''))
+  const lignes = c.split('\n').map((l) => l.trim()).filter(Boolean)
+  // la 1re "ligne" est souvent le pseudo du compte -> on l'enlève
+  if (lignes[0] && /^[\w.]{2,30}$/.test(lignes[0])) lignes.shift()
+  return lignes.join('\n').trim() || null
+}
+
+// --- Récupération du texte d'une recette à partir du lien de la vidéo (gratuit) ---
+// Instagram : sa page "embed" publique (sans connexion) lue via un proxy CORS.
+// TikTok : oEmbed public. Sinon : lecteur Jina (best-effort).
 export async function recupererDepuisLien(url: string): Promise<string | null> {
   const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), 9000)
+  const t = setTimeout(() => ctrl.abort(), 12000)
   try {
+    // --- Instagram ---
+    const ig = url.match(/instagram\.com\/(reel|reels|p|tv)\/([\w-]+)/i)
+    if (ig) {
+      const type = ig[1].toLowerCase() === 'reels' ? 'reel' : ig[1].toLowerCase()
+      const embed = `https://www.instagram.com/${type}/${ig[2]}/embed/captioned/`
+      try {
+        const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(embed), { signal: ctrl.signal })
+        if (r.ok) {
+          const cap = captionInstagram(await r.text())
+          if (cap && cap.length > 20) return cap
+        }
+      } catch {
+        /* on tente Jina ensuite */
+      }
+      try {
+        const r = await fetch('https://r.jina.ai/' + embed, { signal: ctrl.signal })
+        if (r.ok) {
+          const txt = await r.text()
+          if (txt && !/log in|connexion/i.test(txt.slice(0, 200))) return txt
+        }
+      } catch {
+        /* on laissera coller à la main */
+      }
+      return null
+    }
+
+    // --- TikTok ---
     if (/tiktok\.com/i.test(url)) {
       const r = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`, { signal: ctrl.signal })
       if (r.ok) {
@@ -13,11 +59,12 @@ export async function recupererDepuisLien(url: string): Promise<string | null> {
         if (j?.title) return j.title as string
       }
     }
-    // fallback générique : Jina lit la page et renvoie son texte
+
+    // --- Autres : lecteur Jina ---
     const r2 = await fetch('https://r.jina.ai/' + url, { signal: ctrl.signal })
     if (r2.ok) return await r2.text()
   } catch {
-    // réseau / CORS / timeout -> on laissera l'utilisateur coller à la main
+    // réseau / CORS / timeout
   } finally {
     clearTimeout(t)
   }
@@ -28,7 +75,10 @@ export async function recupererDepuisLien(url: string): Promise<string | null> {
 
 // lignes "parasites" typiques des réseaux
 const FILLER =
-  /(abonn|suis[- ]?(moi|nous)|follow|\blike\b|\baime[zr]?\b|partage|comment(e|aire)|lien en bio|en bio|recette compl[èe]te|enregistre|\bsave\b|sponsor|collab|nouvelle vid[ée]o|chaque (jour|semaine)|bon app[ée]tit|👇|⬇|🔔|👉|🥰|❤️|credit|©)/i
+  /(abonn|suis[- ]?(moi|nous)|follow|\blike\b|\baime[zr]?\b|partage|comment(e|er|aire)|comments?\b|lien en bio|en bio|recette compl[èe]te|enregistre|\bsave\b|sponsor|collab|nouvelle vid[ée]o|chaque (jour|semaine)|bon app[ée]tit|view all|voir (tout|les|plus)|watch on instagram|^play$|^more$|likes?$|👇|⬇|🔔|👉|🥰|❤️|credit|©)/i
+
+// indications de portions ("2 personnes", "pour 4") — pas un ingrédient
+const PORTIONS = /^(pour\s+)?\d*\s*(personnes?|pers\.?|portions?|parts?)\s*:?\s*$/i
 
 const UNITE_KW =
   /\b(\d|g\b|kg\b|ml\b|cl\b|\bl\b|c\.?\s?[àa]\.?\s?[sc]\b|càs|càc|cuill|gousses?|pinc[ée]e|tranches?|sachets?|bo[îi]tes?|cub|verres?|cs\b|cc\b)/i
@@ -84,16 +134,18 @@ export function analyserTexte(texte: string): RecetteExtraite {
     }
   }
 
-  // titre : 1re ligne courte qui n'est ni un ingrédient ni une étape
+  // titre : une ligne d'intro (avant la liste d'ingrédients), pas un en-tête ni du blabla
+  const avant = idxIng >= 0 ? lignes.slice(0, idxIng) : lignes.slice(0, 4)
   const nom =
-    lignes.find((l) => !estIngredient(l) && l.length >= 3 && l.length < 55 && !/ingr|pr[ée]p|[ée]tape/i.test(l)) ||
+    avant.find((l) => l.length >= 4 && l.length < 60 && !/ingr[ée]d|pr[ée]p|[ée]tape/i.test(l) && !FILLER.test(l)) ||
     lignes[0] ||
     'Recette importée'
 
+  const propre = (arr: string[]) => arr.filter((l) => l && l !== nom && !FILLER.test(l))
   return {
     nom: nom.slice(0, 60),
-    ingredients: ingredients.filter((l) => l !== nom),
-    etapes,
+    ingredients: propre(ingredients).filter((l) => !PORTIONS.test(l)),
+    etapes: propre(etapes),
   }
 }
 
