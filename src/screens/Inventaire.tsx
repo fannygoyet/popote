@@ -11,7 +11,7 @@ const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
 ]
 
 export function Inventaire() {
-  const { data, produit, setStock, ajusterStock, upsertProduit } = useStore()
+  const { data, produit, setStock, ajusterStock, upsertProduit, supprimerProduit } = useStore()
   const [scan, setScan] = useState(false)
   const [ajout, setAjout] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -172,26 +172,52 @@ export function Inventaire() {
             />
             {resultats.map((p) => {
               const dedans = qte(p.id) > 0
+              const perso = p.id.startsWith('perso-') || p.id.startsWith('off-')
               return (
-                <button
+                <div
                   className="carte ligne espace"
                   key={p.id}
-                  style={{ padding: '12px 16px', textAlign: 'left', background: dedans ? 'var(--menthe-clair)' : undefined }}
-                  onClick={() => {
-                    setStock(p.id, dedans ? 0 : 1)
-                    setMsg(dedans ? `Retiré : ${p.nom}` : `Ajouté : ${p.nom}`)
-                  }}
+                  style={{ padding: '8px 10px 8px 16px', gap: 8, background: dedans ? 'var(--menthe-clair)' : undefined }}
                 >
-                  <div>
-                    <strong>{p.nom}</strong>
-                    <div className="sous-titre" style={{ fontSize: 12 }}>
-                      {p.kcal100 ? `${p.kcal100} kcal/100g` : 'kcal inconnu'} · {p.rayon}
-                    </div>
-                  </div>
-                  <span className="tag" style={dedans ? { background: 'var(--menthe)', color: '#2c6b53' } : { background: 'var(--lilas-clair)', color: 'var(--lilas)' }}>
-                    {dedans ? '✓ j\'en ai' : '+ ajouter'}
-                  </span>
-                </button>
+                  <button
+                    onClick={() => {
+                      setStock(p.id, dedans ? 0 : 1)
+                      setMsg(dedans ? `Retiré : ${p.nom}` : `Ajouté : ${p.nom}`)
+                    }}
+                    style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+                  >
+                    <span>
+                      <strong>{p.nom}</strong>
+                      <span className="sous-titre" style={{ fontSize: 12, display: 'block' }}>
+                        {p.kcal100 ? `${p.kcal100} kcal/100g` : 'kcal inconnu'} · {p.rayon}
+                      </span>
+                    </span>
+                    <span className="tag" style={dedans ? { background: 'var(--menthe)', color: '#2c6b53' } : { background: 'var(--lilas-clair)', color: 'var(--lilas)' }}>
+                      {dedans ? '✓ j\'en ai' : '+ ajouter'}
+                    </span>
+                  </button>
+                  {perso && (
+                    <button
+                      className="rond"
+                      style={{ width: 34, height: 34, background: 'var(--rose-clair)', color: '#a33a63', flexShrink: 0 }}
+                      title="Supprimer ce produit de mon catalogue"
+                      onClick={() => {
+                        const used = data.recettes.some((r) => r.ingredients.some((i) => i.produitId === p.id))
+                        const ok = confirm(
+                          used
+                            ? `« ${p.nom} » est utilisé dans une recette. Le supprimer quand même de ton catalogue ?`
+                            : `Supprimer « ${p.nom} » de tes produits ?`,
+                        )
+                        if (ok) {
+                          supprimerProduit(p.id)
+                          setMsg(`Supprimé : ${p.nom}`)
+                        }
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
               )
             })}
           </div>

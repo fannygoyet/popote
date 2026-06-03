@@ -73,6 +73,7 @@ interface Ctx {
   // helpers produits
   produit: (id: string) => Produit | undefined
   upsertProduit: (p: Produit) => void
+  supprimerProduit: (id: string) => void
   // personnes
   ajouterPersonne: (p: Omit<Personne, 'id'>) => string
   majPersonne: (id: string, maj: Partial<Personne>) => void
@@ -275,6 +276,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const upsertProduit: Ctx['upsertProduit'] = (p) =>
     set((d) => ({ ...d, produits: mergeById(d.produits, [p]) }))
+
+  const supprimerProduit: Ctx['supprimerProduit'] = (id) =>
+    set((d) => ({
+      ...d,
+      produits: d.produits.filter((p) => p.id !== id),
+      stock: d.stock.filter((s) => s.produitId !== id),
+      courses: d.courses.filter((c) => c.produitId !== id),
+    }))
 
   const ajouterPersonne: Ctx['ajouterPersonne'] = (p) => {
     const id = uid()
@@ -565,6 +574,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     reset,
     produit,
     upsertProduit,
+    supprimerProduit,
     ajouterPersonne,
     majPersonne,
     supprimerPersonne,
