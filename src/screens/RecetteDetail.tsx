@@ -5,7 +5,7 @@ import { SUBSTITUTS } from '../store/seed'
 import { Mascotte } from '../components/Mascotte'
 import type { Ingredient } from '../store/types'
 
-type LigneConfirm = { ing: Ingredient; eff: string; dispo: boolean; q: number }
+type LigneConfirm = { ing: Ingredient; eff: string; stockId: string; dispo: boolean; q: number }
 
 type Phase = 'config' | 'confirm' | 'noter'
 // remplacement par ingrédient : undefined = garder, null = retirer, string = produit de remplacement
@@ -13,7 +13,7 @@ type Rempl = Record<string, string | null | undefined>
 
 export function RecetteDetail() {
   const { id } = useParams()
-  const { data, produit, faisabilite, confirmerRecette, ajouterAuxCourses } = useStore()
+  const { data, produit, faisabilite, confirmerRecette, ajouterAuxCourses, produitEnStock } = useStore()
   const nav = useNavigate()
   const loc = useLocation()
 
@@ -34,9 +34,11 @@ export function RecetteDetail() {
       .map((ing) => {
         const eff = effectif(ing.produitId)
         if (eff === null) return null
-        const dispo = enStock(eff)
-        const q = dedOverride[eff] ?? (dispo ? 1 : 0)
-        return { ing, eff, dispo, q }
+        const sid = produitEnStock(eff)
+        const stockId = sid ?? eff
+        const dispo = sid != null
+        const q = dedOverride[stockId] ?? (dispo ? 1 : 0)
+        return { ing, eff, stockId, dispo, q }
       })
       .filter(Boolean) as LigneConfirm[]
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,8 +49,7 @@ export function RecetteDetail() {
   const ratio = portions / r.portions
 
   function enStock(produitId: string) {
-    const s = data.stock.find((x) => x.produitId === produitId)
-    return !!s && s.quantite > 0
+    return produitEnStock(produitId) != null
   }
   // qui, parmi les convives, n'aime pas cet ingrédient ?
   function refractaires(produitId: string) {
@@ -76,7 +77,7 @@ export function RecetteDetail() {
   function valider() {
     const deductions = lignesConfirm
       .filter((l) => l.dispo && l.q > 0)
-      .map((l) => ({ produitId: l.eff, quantite: l.q }))
+      .map((l) => ({ produitId: l.stockId, quantite: l.q }))
     confirmerRecette(r.id, portions, pour, deductions)
     setPhase('noter')
   }
@@ -264,9 +265,9 @@ export function RecetteDetail() {
           <div className="carte pile" style={{ gap: 10 }}>
             <strong>À retirer de tes placards</strong>
             {lignesConfirm.map((l) => (
-              <div className="ligne espace" key={l.eff}>
+              <div className="ligne espace" key={l.stockId}>
                 <span style={{ opacity: l.dispo ? 1 : 0.45 }}>
-                  {produit(l.eff)?.nom ?? l.eff}
+                  {produit(l.stockId)?.nom ?? produit(l.eff)?.nom ?? l.eff}
                   {l.eff !== l.ing.produitId && (
                     <span className="tag" style={{ marginLeft: 6 }}>
                       remplace {produit(l.ing.produitId)?.nom}
@@ -276,9 +277,9 @@ export function RecetteDetail() {
                 </span>
                 {l.dispo ? (
                   <div className="compteur">
-                    <button onClick={() => setDedOverride((o) => ({ ...o, [l.eff]: Math.max(0, l.q - 1) }))}>−</button>
+                    <button onClick={() => setDedOverride((o) => ({ ...o, [l.stockId]: Math.max(0, l.q - 1) }))}>−</button>
                     <span className="v">{l.q}</span>
-                    <button onClick={() => setDedOverride((o) => ({ ...o, [l.eff]: l.q + 1 }))}>+</button>
+                    <button onClick={() => setDedOverride((o) => ({ ...o, [l.stockId]: l.q + 1 }))}>+</button>
                   </div>
                 ) : (
                   <span className="sous-titre">—</span>

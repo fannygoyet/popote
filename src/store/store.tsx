@@ -15,6 +15,11 @@ import type {
 import { PRODUITS_SEED, RECETTES_SEED } from './seed'
 import { aujourdhui } from './util'
 import { scoreAntiInflam } from './sante'
+import { matcherProduit } from './extraction'
+
+// ids des concepts génériques (référentiel de base) : sert à rattacher les
+// produits scannés/manuels à un concept (« Pavés de saumon » -> 'saumon').
+const SEED_IDS = new Set(PRODUITS_SEED.map((p) => p.id))
 import { getSyncConfig, setSyncConfig, pull, push, ping, type SyncConfig } from './sync'
 
 export type EtatSync = 'off' | 'idle' | 'sync' | 'ok' | 'err'
@@ -47,7 +52,11 @@ function charger(): AppData {
     const base = dataInitiale()
     const produits = mergeById(base.produits, d.produits ?? [])
     const recettes = mergeById(base.recettes, d.recettes ?? [])
-    return { ...base, ...d, produits, recettes, version: VERSION }
+    // rattachement rétroactif : les produits scannés/manuels d'avant gagnent leur concept
+    const produitsCanon = produits.map((p) =>
+      !SEED_IDS.has(p.id) && !p.canonId ? { ...p, canonId: matcherProduit(p.nom, PRODUITS_SEED) ?? undefined } : p,
+    )
+    return { ...base, ...d, produits: produitsCanon, recettes, version: VERSION }
   } catch {
     return dataInitiale()
   }
@@ -89,6 +98,8 @@ interface Ctx {
   // recettes
   scoreRecette: (r: Recette, pour: string[]) => number
   faisabilite: (r: Recette) => { ok: boolean; manquants: Ingredient[] }
+  produitEnStock: (conceptId: string) => string | null
+  recettesPourProduit: (produitId: string) => Recette[]
   addRecette: (r: Omit<Recette, 'id'> & { id?: string }) => string
   supprimerRecette: (id: string) => void
   // valide une recette cuisinée : déduit du stock les quantités explicitement choisies
@@ -275,7 +286,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const produit = (id: string) => data.produits.find((p) => p.id === id)
 
   const upsertProduit: Ctx['upsertProduit'] = (p) =>
-    set((d) => ({ ...d, produits: mergeById(d.produits, [p]) }))
+    set((d) => {
+      let prod = p
+      // produit non générique sans concept -> on tente de le rattacher (canonId)
+      if (!SEED_IDS.has(p.id) && !p.canonId) {
+        const c = matcherProduit(p.nom, PRODUITS_SEED)
+        if (c && c !== p.id) prod = { ...p, canonId: c }
+      }
+      return { ...d, produits: mergeById(d.produits, [prod]) }
+    })
 
   const supprimerProduit: Ctx['supprimerProduit'] = (id) =>
     set((d) => ({
@@ -370,14 +389,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { ...d, avis: [...autres, av] }
     })
 
-  // Faisabilité : tous les ingrédients NON optionnels sont présents dans les placards.
-  // (Présence, pas calcul de grammes : à la maison on sait juste si on a des pâtes ou pas.)
+  // Renvoie l'id du produit en stock qui satisfait un concept (lui-même, ou un
+  // produit scanné/manuel rattaché via canonId), sinon null.
+  const produitEnStock: Ctx['produitEnStock'] = (conceptId) => {
+    const exact = data.stock.find((s) => s.produitId === conceptId && s.quantite > 0)
+    if (exact) return exact.produitId
+    const viaCanon = data.stock.find((s) => {
+      if (s.quantite <= 0) return false
+      const p = data.produits.find((x) => x.id === s.produitId)
+      return p?.canonId === conceptId
+    })
+    return viaCanon ? viaCanon.produitId : null
+  }
+
+  // Recettes qui utilisent un produit donné (par son concept générique).
+  const recettesPourProduit: Ctx['recettesPourProduit'] = (produitId) => {
+    const p = data.produits.find((x) => x.id === produitId)
+    const concept = p?.canonId ?? produitId
+    return data.recettes.filter((r) =>
+      r.ingredients.some((i) => i.produitId === concept || i.produitId === produitId),
+    )
+  }
+
+  // Faisabilité : tous les ingrédients NON optionnels sont présents dans les placards
+  // (soit le concept lui-même, soit un article rattaché — scanné/manuel).
   const faisabilite: Ctx['faisabilite'] = (r) => {
     const manquants: Ingredient[] = []
     for (const ing of r.ingredients) {
       if (ing.optionnel) continue
-      const s = data.stock.find((x) => x.produitId === ing.produitId)
-      if (!s || s.quantite <= 0) manquants.push(ing)
+      if (!produitEnStock(ing.produitId)) manquants.push(ing)
     }
     return { ok: manquants.length === 0, manquants }
   }
@@ -585,6 +625,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     avisPour,
     scoreRecette,
     faisabilite,
+    produitEnStock,
+    recettesPourProduit,
     addRecette,
     supprimerRecette,
     confirmerRecette,

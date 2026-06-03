@@ -19,6 +19,9 @@ const STOP = new Set([
   'frais', 'fraiche', 'fraiches', 'liquide', 'entier', 'entiere', 'demi', 'quelques', 'beaucoup',
   'peu', 'morceau', 'morceaux', 'filet', 'filets', 'tasse', 'verre', 'verres', 'tranchee',
   'g', 'kg', 'ml', 'cl', 'l', 'pincee', 'pincees', 'belle', 'beau', 'bonne', 'bon',
+  // mots de découpe : ne doivent pas piloter le rapprochement (« escalope de poulet » -> poulet)
+  'escalope', 'escalopes', 'pave', 'paves', 'steak', 'steaks', 'blanc', 'blancs',
+  'darne', 'darnes', 'cuisse', 'cuisses', 'aiguillette', 'aiguillettes',
 ])
 
 function motsCles(s: string): string[] {

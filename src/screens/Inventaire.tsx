@@ -1,13 +1,25 @@
 import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/store'
 import { Scanner } from '../components/Scanner'
+import { QueCuisiner } from '../components/QueCuisiner'
 import { chercherProduitParCodeBarres } from '../store/openfoodfacts'
-import type { Lieu, Produit } from '../store/types'
+import { estComptable } from '../store/seed'
+import type { Lieu, Produit, Rayon, StockItem } from '../store/types'
 
 const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
   { cle: 'frigo', label: 'Frigo', ic: '🧊' },
   { cle: 'placard', label: 'Placard', ic: '🥫' },
   { cle: 'congelo', label: 'Congélo', ic: '❄️' },
+]
+
+const RAYONS: { cle: Rayon; label: string; ic: string }[] = [
+  { cle: 'fruits-legumes', label: 'Fruits & légumes', ic: '🥕' },
+  { cle: 'viande-poisson', label: 'Viande & poisson', ic: '🍗' },
+  { cle: 'cremerie', label: 'Crémerie', ic: '🧀' },
+  { cle: 'surgele', label: 'Surgelés', ic: '❄️' },
+  { cle: 'boulangerie', label: 'Boulangerie', ic: '🥖' },
+  { cle: 'epicerie', label: 'Épicerie', ic: '🥫' },
+  { cle: 'autre', label: 'Autre', ic: '🛍️' },
 ]
 
 export function Inventaire() {
@@ -20,10 +32,69 @@ export function Inventaire() {
   const [recon, setRecon] = useState<Produit[] | null>(null) // produits non scannés en mode complet
   const [aRetirer, setARetirer] = useState<Set<string>>(new Set())
   const scannes = useRef<Set<string>>(new Set()) // produits vus pendant la session de scan
+  const [rechercheStock, setRechercheStock] = useState('')
+  const [groupe, setGroupe] = useState<'lieu' | 'categorie'>('lieu')
+  const [cuisinerProd, setCuisinerProd] = useState<Produit | null>(null)
 
   function qte(produitId: string) {
     return data.stock.find((s) => s.produitId === produitId)?.quantite ?? 0
   }
+
+  // Une ligne de l'inventaire : compteur si l'aliment se compte, sinon présence.
+  function ligneStock(s: StockItem) {
+    const p = produit(s.produitId)
+    const comptable = p ? estComptable(p) : false
+    return (
+      <div className="carte ligne espace" key={s.produitId} style={{ padding: '10px 12px 10px 16px', gap: 6 }}>
+        <span style={{ fontWeight: 700, flex: 1, minWidth: 0 }}>{p?.nom ?? s.produitId}</span>
+        <div className="ligne" style={{ gap: 6 }}>
+          {comptable || s.quantite > 1 ? (
+            <div className="compteur">
+              <button onClick={() => ajusterStock(s.produitId, -1)}>−</button>
+              <span className="v">{s.quantite}</span>
+              <button onClick={() => ajusterStock(s.produitId, 1)}>+</button>
+            </div>
+          ) : (
+            <button className="chip" style={{ padding: '6px 12px' }} title="J'en ai plusieurs" onClick={() => ajusterStock(s.produitId, 1)}>
+              +
+            </button>
+          )}
+          <button
+            className="rond"
+            style={{ width: 34, height: 34, background: 'var(--beurre-clair)' }}
+            title="Que cuisiner avec ça ?"
+            onClick={() => p && setCuisinerProd(p)}
+          >
+            🍳
+          </button>
+          <button
+            className="rond"
+            style={{ width: 34, height: 34, background: 'var(--rose-clair)', color: '#a33a63' }}
+            title="J'en ai plus"
+            onClick={() => setStock(s.produitId, 0)}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // stock filtré par la recherche, regroupé par lieu OU par catégorie
+  const groupesStock = useMemo(() => {
+    const q = rechercheStock.toLowerCase().trim()
+    const filtre = data.stock.filter((s) => (produit(s.produitId)?.nom ?? '').toLowerCase().includes(q))
+    const defs = groupe === 'lieu' ? LIEUX : RAYONS
+    return defs
+      .map((g) => ({
+        ...g,
+        items: filtre.filter((s) =>
+          groupe === 'lieu' ? s.lieu === g.cle : (produit(s.produitId)?.rayon ?? 'autre') === g.cle,
+        ),
+      }))
+      .filter((g) => g.items.length > 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.stock, data.produits, rechercheStock, groupe])
 
   // Un scan = « j'en ai » (présence). On ne ré-incrémente pas : pas de quantité surprise.
   // Renvoie le nom ajouté (ou null si le produit est inconnu d'Open Food Facts).
@@ -117,51 +188,41 @@ export function Inventaire() {
         </div>
       )}
 
-      {LIEUX.map(({ cle, label, ic }) => {
-        const items = data.stock.filter((s) => s.lieu === cle)
-        if (items.length === 0) return null
-        return (
-          <div key={cle} className="pile" style={{ gap: 8 }}>
-            <h3 style={{ fontSize: 16, marginLeft: 4 }}>
-              {ic} {label}
-            </h3>
-            {items.map((s) => (
-              <div className="carte ligne espace" key={s.produitId} style={{ padding: '12px 16px' }}>
-                <span style={{ fontWeight: 700 }}>{produit(s.produitId)?.nom ?? s.produitId}</span>
-                <div className="ligne" style={{ gap: 8 }}>
-                  {s.quantite > 1 && (
-                    <div className="compteur">
-                      <button onClick={() => ajusterStock(s.produitId, -1)}>−</button>
-                      <span className="v">{s.quantite}</span>
-                      <button onClick={() => ajusterStock(s.produitId, 1)}>+</button>
-                    </div>
-                  )}
-                  {s.quantite <= 1 && (
-                    <button
-                      className="chip"
-                      onClick={() => ajusterStock(s.produitId, 1)}
-                      title="J'en ai plusieurs"
-                      style={{ padding: '6px 12px' }}
-                    >
-                      +
-                    </button>
-                  )}
-                  <button
-                    className="rond"
-                    style={{ width: 34, height: 34, background: 'var(--rose-clair)', color: '#a33a63' }}
-                    title="J'en ai plus"
-                    onClick={() => setStock(s.produitId, 0)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+      {data.stock.length > 0 && (
+        <>
+          <input
+            className="champ"
+            placeholder="🔍 Chercher dans mes placards…"
+            value={rechercheStock}
+            onChange={(e) => setRechercheStock(e.target.value)}
+          />
+          <div className="tags">
+            <button className={'chip' + (groupe === 'lieu' ? ' actif' : '')} onClick={() => setGroupe('lieu')}>
+              📍 Par lieu
+            </button>
+            <button className={'chip' + (groupe === 'categorie' ? ' actif' : '')} onClick={() => setGroupe('categorie')}>
+              🗂️ Par catégorie
+            </button>
           </div>
-        )
-      })}
+        </>
+      )}
+
+      {groupesStock.map((g) => (
+        <div key={g.cle} className="pile" style={{ gap: 8 }}>
+          <h3 style={{ fontSize: 16, marginLeft: 4 }}>
+            {g.ic} {g.label} <span style={{ color: 'var(--texte-doux)', fontWeight: 600 }}>· {g.items.length}</span>
+          </h3>
+          {g.items.map((s) => ligneStock(s))}
+        </div>
+      ))}
+
+      {data.stock.length > 0 && groupesStock.length === 0 && (
+        <div className="vide">Aucun produit ne correspond à « {rechercheStock} ».</div>
+      )}
 
       {scan && <Scanner onCode={onCode} onClose={fermerScan} />}
+
+      {cuisinerProd && <QueCuisiner produit={cuisinerProd} onClose={() => setCuisinerProd(null)} />}
 
       {/* Réconciliation après un inventaire complet */}
       {recon && (

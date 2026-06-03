@@ -123,6 +123,16 @@ export const POIDS_PIECE: Record<string, number> = {
   'pate-brisee': 230,
 }
 
+// Produit qui se compte à l'unité (œuf, fruit/légume, crêpe, pavé de saumon…) :
+// on affiche un compteur. Le reste (farine, sel, huile…) = simple présence.
+export function estComptable(p: Produit): boolean {
+  if (p.rayon === 'fruits-legumes') return true
+  if (POIDS_PIECE[p.id] != null || (p.canonId && POIDS_PIECE[p.canonId] != null)) return true
+  return /saumon|cr[êe]pe|galette|gaufre|steak|pav[ée]|tranche|\boeufs?\b|pizza|wrap|tortilla|yaourt|escalope|filet/i.test(
+    p.nom,
+  )
+}
+
 
 // --- Recettes de départ ----------------------------------------------------
 // (ingrédients liés aux produits ci-dessus, temps réels, kcal par portion estimé)

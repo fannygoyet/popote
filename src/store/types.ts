@@ -20,6 +20,8 @@ export interface Produit {
   kcal100: number | null // kcal pour 100 g/ml, null si inconnu
   codeBarres?: string // rempli quand scanné via Open Food Facts
   perissable: boolean // le frais se gâte vite -> influence l'inventaire
+  canonId?: string // concept générique rattaché (ex. « Pavés de saumon » -> 'saumon')
+                   // -> permet aux articles scannés/manuels de débloquer les recettes
 }
 
 // Ce que j'ai vraiment chez moi, ici et maintenant.
