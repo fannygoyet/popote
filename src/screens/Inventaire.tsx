@@ -2,9 +2,12 @@ import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/store'
 import { Scanner } from '../components/Scanner'
 import { QueCuisiner } from '../components/QueCuisiner'
+import { ConceptPicker } from '../components/ConceptPicker'
 import { chercherProduitParCodeBarres } from '../store/openfoodfacts'
 import { estComptable } from '../store/seed'
 import type { Lieu, Produit, Rayon, StockItem } from '../store/types'
+
+const estBrut = (p?: Produit) => !!p && (p.id.startsWith('off-') || p.id.startsWith('perso-'))
 
 const LIEUX: { cle: Lieu; label: string; ic: string }[] = [
   { cle: 'frigo', label: 'Frigo', ic: '🧊' },
@@ -33,8 +36,34 @@ export function Inventaire() {
   const [aRetirer, setARetirer] = useState<Set<string>>(new Set())
   const scannes = useRef<Set<string>>(new Set()) // produits vus pendant la session de scan
   const [rechercheStock, setRechercheStock] = useState('')
-  const [groupe, setGroupe] = useState<'lieu' | 'categorie'>('lieu')
+  const [groupe, setGroupe] = useState<'lieu' | 'categorie' | 'reconnaitre'>('lieu')
   const [cuisinerProd, setCuisinerProd] = useState<Produit | null>(null)
+  const [conceptProd, setConceptProd] = useState<Produit | null>(null)
+  const [exportTxt, setExportTxt] = useState<string | null>(null)
+
+  const nbNonReconnus = data.stock.filter((s) => {
+    const p = produit(s.produitId)
+    return estBrut(p) && !p?.canonId
+  }).length
+
+  function exporterPlacard() {
+    const out: string[] = [`MON PLACARD — ${data.stock.length} produits`]
+    for (const { cle, label } of LIEUX) {
+      const items = data.stock
+        .filter((s) => s.lieu === cle)
+        .map((s) => produit(s.produitId)?.nom)
+        .filter(Boolean)
+      if (items.length) out.push(`\n[${label}]\n` + items.join(', '))
+    }
+    const perso = data.recettes.filter((r) => r.perso).map((r) => r.nom)
+    if (perso.length) out.push('\n[Mes recettes perso]\n' + perso.join(', '))
+    const txt = out.join('\n')
+    navigator.clipboard?.writeText(txt).then(
+      () => setMsg('Placard copié ! Colle-le dans la conversation.'),
+      () => undefined,
+    )
+    setExportTxt(txt)
+  }
 
   function qte(produitId: string) {
     return data.stock.find((s) => s.produitId === produitId)?.quantite ?? 0
@@ -46,7 +75,27 @@ export function Inventaire() {
     const comptable = p ? estComptable(p) : false
     return (
       <div className="carte ligne espace" key={s.produitId} style={{ padding: '10px 12px 10px 16px', gap: 6 }}>
-        <span style={{ fontWeight: 700, flex: 1, minWidth: 0 }}>{p?.nom ?? s.produitId}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700 }}>{p?.nom ?? s.produitId}</div>
+          {estBrut(p) &&
+            (p?.canonId ? (
+              <button
+                className="tag"
+                style={{ background: 'var(--menthe-clair)', color: '#2c6b53', marginTop: 2 }}
+                onClick={() => p && setConceptProd(p)}
+              >
+                = {produit(p.canonId)?.nom ?? p.canonId}
+              </button>
+            ) : (
+              <button
+                className="tag"
+                style={{ background: 'var(--peche-clair)', color: '#b45a3c', marginTop: 2 }}
+                onClick={() => p && setConceptProd(p)}
+              >
+                🏷️ à reconnaître
+              </button>
+            ))}
+        </div>
         <div className="ligne" style={{ gap: 6 }}>
           {comptable || s.quantite > 1 ? (
             <div className="compteur">
@@ -84,6 +133,13 @@ export function Inventaire() {
   const groupesStock = useMemo(() => {
     const q = rechercheStock.toLowerCase().trim()
     const filtre = data.stock.filter((s) => (produit(s.produitId)?.nom ?? '').toLowerCase().includes(q))
+    if (groupe === 'reconnaitre') {
+      const items = filtre.filter((s) => {
+        const p = produit(s.produitId)
+        return estBrut(p) && !p?.canonId
+      })
+      return items.length ? [{ cle: 'reconnaitre', label: 'À reconnaître', ic: '🏷️', items }] : []
+    }
     const defs = groupe === 'lieu' ? LIEUX : RAYONS
     return defs
       .map((g) => ({
@@ -154,6 +210,11 @@ export function Inventaire() {
           <h1>Mes placards 🧺</h1>
           <p className="sous-titre">{data.stock.length} produits en stock</p>
         </div>
+        {data.stock.length > 0 && (
+          <button className="btn clair petit" onClick={exporterPlacard}>
+            📤 Exporter
+          </button>
+        )}
       </div>
 
       <div className="grille-2">
@@ -203,7 +264,22 @@ export function Inventaire() {
             <button className={'chip' + (groupe === 'categorie' ? ' actif' : '')} onClick={() => setGroupe('categorie')}>
               🗂️ Par catégorie
             </button>
+            {nbNonReconnus > 0 && (
+              <button
+                className={'chip' + (groupe === 'reconnaitre' ? ' actif' : '')}
+                onClick={() => setGroupe('reconnaitre')}
+                style={groupe === 'reconnaitre' ? {} : { background: 'var(--peche-clair)', color: '#b45a3c' }}
+              >
+                🏷️ À reconnaître ({nbNonReconnus})
+              </button>
+            )}
           </div>
+          {groupe === 'reconnaitre' && (
+            <p className="sous-titre" style={{ margin: 0 }}>
+              Touche « 🏷️ à reconnaître » sous un produit pour lui dire ce que c'est. Il comptera alors
+              dans tes recettes.
+            </p>
+          )}
         </>
       )}
 
@@ -223,6 +299,37 @@ export function Inventaire() {
       {scan && <Scanner onCode={onCode} onClose={fermerScan} />}
 
       {cuisinerProd && <QueCuisiner produit={cuisinerProd} onClose={() => setCuisinerProd(null)} />}
+
+      {conceptProd && <ConceptPicker produit={conceptProd} onClose={() => setConceptProd(null)} />}
+
+      {/* Export du placard à copier/envoyer */}
+      {exportTxt && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(74,68,88,.35)', zIndex: 48, display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setExportTxt(null)}
+        >
+          <div
+            className="pile"
+            style={{ background: 'var(--lilas-fond)', width: '100%', maxWidth: 480, margin: '0 auto', borderRadius: '30px 30px 0 0', padding: 16, maxHeight: '85vh', overflowY: 'auto', gap: 10 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ligne espace">
+              <h3>Ton placard 📤</h3>
+              <button className="btn clair petit" onClick={() => setExportTxt(null)}>
+                Fermer
+              </button>
+            </div>
+            <p className="sous-titre" style={{ margin: 0 }}>
+              C'est copié dans le presse-papier. Sinon, sélectionne tout ci-dessous et copie, puis
+              colle-le dans la conversation pour que j'ajoute des recettes adaptées.
+            </p>
+            <textarea className="champ" style={{ minHeight: 220, resize: 'vertical', fontSize: 13 }} readOnly value={exportTxt} onFocus={(e) => e.currentTarget.select()} />
+            <button className="btn bloc" onClick={() => { navigator.clipboard?.writeText(exportTxt); setMsg('Copié ✓') }}>
+              📋 Copier
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Réconciliation après un inventaire complet */}
       {recon && (

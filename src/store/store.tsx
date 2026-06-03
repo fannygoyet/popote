@@ -83,6 +83,7 @@ interface Ctx {
   produit: (id: string) => Produit | undefined
   upsertProduit: (p: Produit) => void
   supprimerProduit: (id: string) => void
+  setCanon: (produitId: string, canonId: string | null) => void
   // personnes
   ajouterPersonne: (p: Omit<Personne, 'id'>) => string
   majPersonne: (id: string, maj: Partial<Personne>) => void
@@ -295,6 +296,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       return { ...d, produits: mergeById(d.produits, [prod]) }
     })
+
+  // attribue (ou retire) le concept générique d'un produit -> il compte alors
+  // dans les recettes qui utilisent cet ingrédient
+  const setCanon: Ctx['setCanon'] = (produitId, canonId) =>
+    set((d) => ({
+      ...d,
+      produits: d.produits.map((p) => (p.id === produitId ? { ...p, canonId: canonId ?? undefined } : p)),
+    }))
 
   const supprimerProduit: Ctx['supprimerProduit'] = (id) =>
     set((d) => ({
@@ -615,6 +624,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     produit,
     upsertProduit,
     supprimerProduit,
+    setCanon,
     ajouterPersonne,
     majPersonne,
     supprimerPersonne,

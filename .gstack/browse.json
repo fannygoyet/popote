@@ -1,8 +1,8 @@
 {
-  "pid": 17510,
-  "port": 59969,
-  "token": "9a437b52-3921-4e61-b1c7-56323ffc4e7d",
-  "startedAt": "2026-06-03T09:47:29.230Z",
+  "pid": 22162,
+  "port": 22222,
+  "token": "f2c80877-b637-4b01-850f-310db58fa332",
+  "startedAt": "2026-06-03T12:05:39.755Z",
   "serverPath": "/Users/fanny/.claude/skills/gstack/browse/src/server.ts",
   "mode": "launched",
   "configHash": "303a7eeccc03078b"
